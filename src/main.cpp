@@ -22,6 +22,8 @@
 
 #include <iostream>
 
+#include "dr_api.h"
+
 int main()
 {
     std::cout << __func__ << std::endl;
