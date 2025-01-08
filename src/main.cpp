@@ -20,11 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <iostream>
-
 #include "dr_api.h"
 
-int main()
+DR_EXPORT
+void dr_client_main(client_id_t	id, int	argc, const char **argv)
 {
-    std::cout << __func__ << std::endl;
+    // Need to enable console logging specifically on Windows
+#ifdef WINDOWS
+    dr_enable_console_printing();
+#endif
+
+    dr_printf("ClientID: %u, argv[0]: %s", id, argv[0]);
 }

@@ -24,53 +24,69 @@ cmake_minimum_required(VERSION 3.31)
 
 project(CoMe)
 
-include(ExternalProject)
+include(FetchContent)
 
 option(BUILD_DRIO "Build DynamoRIO from source" OFF)
+option(DRIO_VER   "Use specific DynamoRIO version" OFF)
+option(DRIO_URL   "Use custom DynamoRIO URL" OFF)
 
+if (NOT DRIO_VER)
+    set (DRIO_VER "11.2.0")
+endif ()
+
+# Set up DynamoRIO download targets
 if (BUILD_DRIO)
-  ExternalProject_Add(DynamoRIO
+  FetchContent_Declare(DynamoRIO
     GIT_REPOSITORY  "https://github.com/DynamoRIO/dynamorio.git"
-    GIT_TAG         "release_11.2.0"
+    GIT_TAG         "release_${DRIO_VERSION}"
     GIT_SHALLOW     TRUE
-    PREFIX          "3rdparty/DynamoRIO"
   )
-else()
-  ExternalProject_Add(DynamoRIO
-    URL "https://github.com/DynamoRIO/dynamorio/releases/download/release_11.2.0/DynamoRIO-Windows-11.2.0.zip"
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND     ""
-    INSTALL_COMMAND   ""
-    PREFIX          "3rdparty/DynamoRIO"
+elseif (DRIO_URL)
+  FetchContent_Declare(DynamoRIO
+      URL "${DRIO_URL}"
   )
-endif(BUILD_DRIO)
+else ()
+  if (NOT DRIO_URL)
+    if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+        set (DRIO_URL "https://github.com/DynamoRIO/dynamorio/releases/download/release_${DRIO_VER}/DynamoRIO-Windows-${DRIO_VER}.zip")
+    elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        set (DRIO_URL "https://github.com/DynamoRIO/dynamorio/releases/download/release_${DRIO_VER}/DynamoRIO-Linux-${DRIO_VER}.tar.gz")
+    else ()
+      message (FATAL_ERROR "Unsupported system: '${CMAKE_SYSTEM_NAME}'")
+    endif ()
+  endif()
 
-ExternalProject_Get_property(DynamoRIO SOURCE_DIR)
-include_directories("${SOURCE_DIR}/include")
+  FetchContent_Declare(DynamoRIO
+      URL "${DRIO_URL}"
+  )
+endif()
 
-#find_package(DynamoRIO REQUIRED)
+# Download and activate DynamoRIO
+FetchContent_MakeAvailable(DynamoRIO)
+set (DynamoRIO_DIR "${dynamorio_SOURCE_DIR}/cmake")
+find_package(DynamoRIO)
 
-# if (NOT DynamoRIO_FOUND)
-#   message(FATAL_ERROR "Required DynamoRIO dependency is not found")
-# endif (NOT DynamoRIO_FOUND)
+# Configure CoMe target
+add_library(CoMe SHARED src/main.cpp)
 
-add_executable(CoMe src/main.cpp)
-add_dependencies(CoMe DynamoRIO)
+# Configure DynamoRIO
+configure_DynamoRIO_client(CoMe)
 
-# Set platform type
+# TODO Configure DynamoRIO extensions
+# use_DynamoRIO_extension()
+
+# Set platform type for DynamoRIO
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   target_compile_definitions(CoMe PUBLIC WINDOWS)
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_compile_definitions(CoMe PUBLIC LINUX)
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Macos")
-  target_compile_definitions(CoMe PUBLIC MACOS)
 else ()
   message (FATAL_ERROR "Unsupported system: '${CMAKE_SYSTEM_NAME}'")
 endif ()
 
 message (STATUS "Target system: '${CMAKE_SYSTEM_NAME}'")
 
-# Set architecture type
+# Set architecture type for DynamoRIO
 if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64")
   target_compile_definitions(CoMe PUBLIC X86_64)
 else ()
@@ -78,6 +94,4 @@ else ()
 endif ()
 
 message (STATUS "Target architecture: '${CMAKE_SYSTEM_PROCESSOR}'")
-
-target_link_libraries(CoMe)
 
