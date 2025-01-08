@@ -1,0 +1,97 @@
+# MIT License
+#
+# Copyright (c) 2024 devel29a
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+cmake_minimum_required(VERSION 3.31)
+
+project(CoMe)
+
+include(FetchContent)
+
+option(BUILD_DRIO "Build DynamoRIO from source" OFF)
+option(DRIO_VER   "Use specific DynamoRIO version" OFF)
+option(DRIO_URL   "Use custom DynamoRIO URL" OFF)
+
+if (NOT DRIO_VER)
+    set (DRIO_VER "11.2.0")
+endif ()
+
+# Set up DynamoRIO download targets
+if (BUILD_DRIO)
+  FetchContent_Declare(DynamoRIO
+    GIT_REPOSITORY  "https://github.com/DynamoRIO/dynamorio.git"
+    GIT_TAG         "release_${DRIO_VERSION}"
+    GIT_SHALLOW     TRUE
+  )
+elseif (DRIO_URL)
+  FetchContent_Declare(DynamoRIO
+      URL "${DRIO_URL}"
+  )
+else ()
+  if (NOT DRIO_URL)
+    if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+        set (DRIO_URL "https://github.com/DynamoRIO/dynamorio/releases/download/release_${DRIO_VER}/DynamoRIO-Windows-${DRIO_VER}.zip")
+    elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        set (DRIO_URL "https://github.com/DynamoRIO/dynamorio/releases/download/release_${DRIO_VER}/DynamoRIO-Linux-${DRIO_VER}.tar.gz")
+    else ()
+      message (FATAL_ERROR "Unsupported system: '${CMAKE_SYSTEM_NAME}'")
+    endif ()
+  endif()
+
+  FetchContent_Declare(DynamoRIO
+      URL "${DRIO_URL}"
+  )
+endif()
+
+# Download and activate DynamoRIO
+FetchContent_MakeAvailable(DynamoRIO)
+set (DynamoRIO_DIR "${dynamorio_SOURCE_DIR}/cmake")
+find_package(DynamoRIO)
+
+# Configure CoMe target
+add_library(CoMe SHARED src/main.cpp)
+
+# Configure DynamoRIO
+configure_DynamoRIO_client(CoMe)
+
+# TODO Configure DynamoRIO extensions
+# use_DynamoRIO_extension()
+
+# Set platform type for DynamoRIO
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+  target_compile_definitions(CoMe PUBLIC WINDOWS)
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_compile_definitions(CoMe PUBLIC LINUX)
+else ()
+  message (FATAL_ERROR "Unsupported system: '${CMAKE_SYSTEM_NAME}'")
+endif ()
+
+message (STATUS "Target system: '${CMAKE_SYSTEM_NAME}'")
+
+# Set architecture type for DynamoRIO
+if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64")
+  target_compile_definitions(CoMe PUBLIC X86_64)
+else ()
+  message (FATAL_ERROR "Unsupported architecture '${CMAKE_SYSTEM_PROCESSOR}'")
+endif ()
+
+message (STATUS "Target architecture: '${CMAKE_SYSTEM_PROCESSOR}'")
+
