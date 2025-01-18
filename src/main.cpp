@@ -22,17 +22,53 @@
 
 #include "dr_api.h"
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#pragma intrinsic(__rdtsc)
+#else
+#include <x86intrin.h>
+#endif
+
+#include "module.hpp"
+
+namespace
+{
+    CoMe::Module::Cache ModuleCache;
+} 
+
 void on_exit()
 {
     dr_printf("%s: called\n", __func__);
+
+    std::uint64_t UnloadTSC = __rdtsc();
+
+    // Do fake module unload before writing collected data
+    for (auto Module : ModuleCache)
+    {
+        if (Module.LoadTSC != 0 && Module.UnloadTSC == 0)
+        {
+            Module.UnloadTSC = UnloadTSC;
+        }
+
+        // Write collected module data
+        dr_printf("%s: StartAddr %llu, EndAddr %llu, Loaded %llu, Unloaded %llu, Path %s\n",
+            __func__, Module.StartAddr, Module.EndAddr, Module.LoadTSC, Module.UnloadTSC, Module.FullPath.c_str());
+    }
 }
 
 void on_module_load(void *ctx, const module_data_t *data, bool loaded)
 {
     if (data)
     {
-        dr_printf("%s: Context %p, Addr %p, Path %s, State %s\n",
-            __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED");
+        std::uint64_t LoadTSC = __rdtsc();
+
+        dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu\n",
+            __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED", LoadTSC);
+
+        ModuleCache.emplace_back(
+            reinterpret_cast<std::uint64_t>(data->start),
+            reinterpret_cast<std::uint64_t>(data->end),
+            LoadTSC, 0U, data->full_path);
     }
     else
     {
@@ -44,8 +80,22 @@ void on_module_unload(void *ctx, const module_data_t *data)
 {
     if (data)
     {
-        dr_printf("%s: Context %p, Addr %p, Path %s, State %s\n",
-            __func__, ctx, data->start, data->full_path, "UNLOADED");
+        std::uint64_t UnloadTSC = __rdtsc();
+
+        dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu\n",
+            __func__, ctx, data->start, data->full_path, "UNLOADED", UnloadTSC);
+
+        // Perhaps, searching backwards is better from performance perspective
+        for (auto Module : ModuleCache)
+        {
+            if (Module.StartAddr == reinterpret_cast<std::uint64_t>(data->start) &&
+                Module.EndAddr == reinterpret_cast<std::uint64_t>(data->end) &&
+                Module.LoadTSC != 0 && Module.UnloadTSC == 0 && Module.FullPath.compare(data->full_path) == 0)
+            {
+                Module.UnloadTSC = UnloadTSC;
+                break;
+            }
+        }
     }
     else
     {
@@ -103,8 +153,10 @@ dr_emit_flags_t on_basicblock(void *ctx, void *tag, instrlist_t *bb, bool for_tr
 {
     dr_emit_flags_t emit_flags = DR_EMIT_DEFAULT;
 
+    /*
     dr_printf("%s: Context %p, Tag %p, BB %p, ForTrace: %d, Translating %d\n",
         __func__, ctx, tag, bb, for_trace, translating);
+    */
 
     return emit_flags;
 }
@@ -113,8 +165,10 @@ dr_emit_flags_t on_trace(void *ctx, void *tag, instrlist_t *trace, bool translat
 {
     dr_emit_flags_t emit_flags = DR_EMIT_DEFAULT;
 
+    /*
     dr_printf("%s: Context %p, Tag %p, Trace %p, Translating %d\n",
         __func__, ctx, tag, trace, translating);
+    */
 
     return emit_flags;
 }
