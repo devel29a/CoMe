@@ -29,6 +29,13 @@ include(FetchContent)
 option(BUILD_DRIO "Build DynamoRIO from source" OFF)
 option(DRIO_VER   "Use specific DynamoRIO version" OFF)
 option(DRIO_URL   "Use custom DynamoRIO URL" OFF)
+option(BUILD_TEST "Build CoMe tests" OFF)
+
+if (NOT CMAKE_BUILD_TYPE)
+    set (CMAKE_BUILD_TYPE "Release")
+endif ()
+
+message(STATUS "Selected build mode: ${CMAKE_BUILD_TYPE}")
 
 if (NOT DRIO_VER)
     set (DRIO_VER "11.2.0")
@@ -95,3 +102,7 @@ endif ()
 
 message (STATUS "Target architecture: '${CMAKE_SYSTEM_PROCESSOR}'")
 
+if (BUILD_TEST)
+    include(CTest)
+    add_subdirectory(test)
+endif()
