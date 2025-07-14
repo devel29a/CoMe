@@ -20,33 +20,38 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
-
-#include <cstdint>
-#include <string>
-#include <vector>
+#include "symbol.hpp"
 
 namespace CoMe
 {
-struct Module
+Symbol::Symbol(){}
+
+Symbol::Symbol(const std::string &name, const std::uint64_t address, const std::string &module)
 {
-    std::uint64_t StartAddress { 0U };
-    std::uint64_t EndAddress { 0U };
-    std::uint64_t LoadTSC { 0U };
-    std::uint64_t UnloadTSC { 0U };
-    std::string FullPath;
+    this->Name = name;
+    this->Address = address;
+    this->Module = module;
+}
 
-    Module();
+Symbol::Symbol(const Symbol &symbol)
+{
+    this->operator=(symbol);
+}
 
-    Module(const std::uint64_t StartAddress_,
-           const std::uint64_t EndAddress_,
-           const std::uint64_t LoadTSC_,
-           const std::uint64_t UnloadTSC_,
-           const std::string &FullPath_);
+const Symbol& Symbol::operator=(const Symbol &symbol)
+{
+    this->Name = symbol.Name;
+    this->Address = symbol.Address;
+    this->Module = symbol.Module;
 
-    const Module& operator=(const Module &module);
-    bool operator==(const CoMe::Module &module);
-};
+    return *this;
+}
 
-using ModulesContainer = std::vector<Module>;
+bool Symbol::operator==(const Symbol &symbol)
+{
+    return this->Name    == symbol.Name    &&
+           this->Address == symbol.Address &&
+           this->Module  == symbol.Module    ;
+}
+
 }

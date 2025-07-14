@@ -23,13 +23,15 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace CoMe
 {
 struct BasicBlock
 {
-    std::uint64_t StartAddress;
-    std::uint64_t EndAddress;
+    std::uint64_t StartAddress { 0U };
+    std::uint64_t EndAddress { 0U };
+    std::string Symbol;
 
     bool operator==(const CoMe::BasicBlock& module);
 };

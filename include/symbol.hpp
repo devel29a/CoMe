@@ -24,29 +24,20 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
 
 namespace CoMe
 {
-struct Module
+struct Symbol
 {
-    std::uint64_t StartAddress { 0U };
-    std::uint64_t EndAddress { 0U };
-    std::uint64_t LoadTSC { 0U };
-    std::uint64_t UnloadTSC { 0U };
-    std::string FullPath;
+    Symbol();
+    Symbol(const std::string &Name, const std::uint64_t Address, const std::string &Module);
+    Symbol(const Symbol &symbol);
 
-    Module();
+    const Symbol& operator=(const Symbol &symbol);
+    bool operator==(const Symbol &symbol);
 
-    Module(const std::uint64_t StartAddress_,
-           const std::uint64_t EndAddress_,
-           const std::uint64_t LoadTSC_,
-           const std::uint64_t UnloadTSC_,
-           const std::string &FullPath_);
-
-    const Module& operator=(const Module &module);
-    bool operator==(const CoMe::Module &module);
+    std::string Name;
+    std::uint64_t Address { 0U };
+    std::string Module;
 };
-
-using ModulesContainer = std::vector<Module>;
-}
+} // namespace CoMe

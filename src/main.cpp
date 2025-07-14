@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "dr_api.h"
+#include "drsyms.h"
 
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -39,8 +40,20 @@ namespace
 void on_exit()
 {
     dr_printf("%s: called\n", __func__);
-    //std::uint64_t UnloadTSC = __rdtsc();
-    profiler.unloadAllModules();
+
+    profiler.unloadAllModules(__rdtsc());
+    profiler.stop();
+
+    drsym_exit();
+}
+
+bool on_symbol(const char *name, size_t modoffs, void *data)
+{
+    auto module = static_cast<const std::string *>(data);
+    CoMe::Symbol symbol { std::string(name), modoffs, *module };
+    profiler.registerSymbol(symbol);
+    dr_printf("%s: [0x%llx] %s from %s\n", __func__, modoffs, name, module->c_str());
+    return true;
 }
 
 void on_module_load(void *ctx, const module_data_t *data, bool loaded)
@@ -65,6 +78,8 @@ void on_module_load(void *ctx, const module_data_t *data, bool loaded)
 
     dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu, Added: %u, Total Amount %u\n",
         __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED", LoadTSC, err, profiler.getLoadedModules().size());
+
+    drsym_enumerate_symbols(module.FullPath.c_str(), on_symbol, &module.FullPath, DRSYM_DEFAULT_FLAGS);
 }
 
 void on_module_unload(void *ctx, const module_data_t *data)
@@ -199,10 +214,21 @@ void register_profiling_callbacks()
     dr_register_exit_event(on_exit);
 }
 
+bool init()
+{
+    if (DRSYM_SUCCESS != drsym_init(0))
+        return false;
+
+    if (!profiler.start())
+        return false;
+
+    return true;
+}
+
 DR_EXPORT
 void dr_client_main(client_id_t	id, int	argc, const char **argv)
 {
-    if (!profiler.start())
+    if (!init())
         return;
 
     print_application_arguments(id, argc, argv);

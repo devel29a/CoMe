@@ -42,14 +42,14 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 find_package(DynamoRIOPackage)
 
 # Configure CoMe target
-add_library(CoMe SHARED src/main.cpp src/module.cpp src/profiler.cpp)
+add_library(CoMe SHARED src/main.cpp src/symbol.cpp src/module.cpp src/profiler.cpp)
 target_include_directories(CoMe PRIVATE "${CMAKE_SOURCE_DIR}/include")
 
 # Configure DynamoRIO
 configure_DynamoRIO_client(CoMe)
 
-# TODO Configure DynamoRIO extensions
-# use_DynamoRIO_extension()
+# Configure DynamoRIO extensions
+use_DynamoRIO_extension(CoMe drsyms)
 
 # Set platform type for DynamoRIO
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")

@@ -24,6 +24,21 @@
 
 namespace CoMe
 {
+Module::Module(){}
+
+Module::Module(const std::uint64_t StartAddress,
+               const std::uint64_t EndAddress,
+               const std::uint64_t LoadTSC,
+               const std::uint64_t UnloadTSC,
+               const std::string &FullPath)
+{
+    this->StartAddress = StartAddress;
+    this->EndAddress = EndAddress;
+    this->LoadTSC = LoadTSC;
+    this->UnloadTSC = UnloadTSC;
+    this->FullPath = FullPath;
+}
+
 const Module& Module::operator=(const Module& module)
 {
     this->StartAddress = module.StartAddress;

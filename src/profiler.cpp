@@ -61,7 +61,7 @@ bool Profiler::unloadModule(const Module &module)
     return true;
 }
 
-void Profiler::unloadAllModules()
+void Profiler::unloadAllModules(const std::uint64_t unloadTSC)
 {
     LoadedModules.clear();
 }
@@ -80,6 +80,32 @@ const std::string& Profiler::getModuleNameByAddress(const std::uint64_t address)
         return EmptyPath;
 
     return it->FullPath;
+}
+
+bool Profiler::registerSymbol(const Symbol &symbol)
+{
+    if (!isProfilingActive)
+        return false;
+
+    RegisteredSymbols.push_back(symbol);
+    return true;
+}
+
+const Symbol& Profiler::getSymbolByName(const std::string &symbol, const std::string &module)
+{
+    static const Symbol EmptySymbol;
+
+    const auto s = std::find_if(RegisteredSymbols.cbegin(), RegisteredSymbols.cend(),
+        [&](decltype(RegisteredSymbols)::const_reference cref)
+        {
+            return cref.Name == symbol && cref.Module == module;
+        }
+    );
+
+    if (s != RegisteredSymbols.end())
+        return *s;
+
+    return EmptySymbol;
 }
 
 }

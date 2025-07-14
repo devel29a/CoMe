@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "module.hpp"
+#include "symbol.hpp"
 
 namespace CoMe
 {
@@ -33,17 +34,21 @@ class Profiler
 {
 public:
     using ModulesContainer = std::vector<Module>;
+    using SymbolsContainer = std::vector<Symbol>;
 
     bool start();
     bool stop();
     const ModulesContainer& getLoadedModules();
     bool loadModule(const Module &module);
     bool unloadModule(const Module &module);
-    void unloadAllModules();
+    void unloadAllModules(const std::uint64_t unloadTSC);
     const std::string& getModuleNameByAddress(const std::uint64_t address);
+    bool registerSymbol(const Symbol &symbol);
+    const Symbol& getSymbolByName(const std::string &symbol, const std::string &module);
 
 private:
     ModulesContainer LoadedModules;
+    SymbolsContainer RegisteredSymbols;
     bool isProfilingActive { false };
 };
 }

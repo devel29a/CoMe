@@ -41,7 +41,11 @@ add_executable(BasicBlockTest utest/basicblock.cpp ${CMAKE_SOURCE_DIR}/src/basic
 target_include_directories(BasicBlockTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(BasicBlockTest gtest)
 
-add_executable(ProfilerTest utest/profiler.cpp ${CMAKE_SOURCE_DIR}/src/module.cpp ${CMAKE_SOURCE_DIR}/src/basicblock.cpp ${CMAKE_SOURCE_DIR}/src/profiler.cpp)
+add_executable(SymbolTest utest/symbol.cpp ${CMAKE_SOURCE_DIR}/src/symbol.cpp)
+target_include_directories(SymbolTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
+target_link_libraries(SymbolTest gtest)
+
+add_executable(ProfilerTest utest/profiler.cpp ${CMAKE_SOURCE_DIR}/src/symbol.cpp ${CMAKE_SOURCE_DIR}/src/module.cpp ${CMAKE_SOURCE_DIR}/src/basicblock.cpp ${CMAKE_SOURCE_DIR}/src/profiler.cpp)
 target_include_directories(ProfilerTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(ProfilerTest gtest)
 
@@ -57,6 +61,9 @@ add_test(NAME ModuleTest
 
 add_test(NAME BasicBlockTest
          COMMAND BasicBlockTest)
+
+add_test(NAME SymbolTest
+         COMMAND SymbolTest)
 
 add_test(NAME ProfilerTest
          COMMAND ProfilerTest)

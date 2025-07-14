@@ -1,5 +1,6 @@
 #include "profiler.hpp"
 #include "basicblock.hpp"
+#include "symbol.hpp"
 
 #include <gtest/gtest.h>
 
@@ -83,7 +84,7 @@ TEST_F(ProfilerTest, UnloadModuleAllModules) {
     EXPECT_EQ(p.start(), true);
     EXPECT_EQ(p.loadModule(modulesContainer[0]), true);
     EXPECT_EQ(p.loadModule(modulesContainer[1]), true);
-    p.unloadAllModules();
+    p.unloadAllModules(42U);
     EXPECT_EQ(p.stop(), true);
     auto modules = p.getLoadedModules();
     EXPECT_EQ(modules.size(), 0);
@@ -118,6 +119,26 @@ TEST_F(ProfilerTest, GetModuleNameByInnerAddress) {
     auto innerAddress = getInnerAddress(modulesContainer[0].StartAddress, modulesContainer[0].EndAddress);
     auto name = p.getModuleNameByAddress(innerAddress);
     EXPECT_EQ(name, std::string("mod0"));
+}
+
+TEST_F(ProfilerTest, RegisterModuleSymbol) {
+    Profiler p;
+    Symbol s;
+    EXPECT_EQ(p.start(), true);
+    EXPECT_EQ(p.registerSymbol(s), true);
+    EXPECT_EQ(p.stop(), true);
+}
+
+TEST_F(ProfilerTest, GetModuleSymbolByName) {
+    Profiler p;
+    Symbol s { std::string("sym0"), 42U, std::string("mod0") };
+    EXPECT_EQ(p.start(), true);
+    EXPECT_EQ(p.registerSymbol(s), true);
+    EXPECT_EQ(p.stop(), true);
+    const Symbol &symbol = p.getSymbolByName(std::string("sym0"), std::string("mod0"));
+    EXPECT_EQ(symbol.Name, std::string("sym0"));
+    EXPECT_EQ(symbol.Address, 42U);
+    EXPECT_EQ(symbol.Module, std::string("mod0"));
 }
 
 }  // namespace
