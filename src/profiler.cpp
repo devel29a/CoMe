@@ -1,5 +1,7 @@
 #include "profiler.hpp"
 
+#include <algorithm>
+
 namespace CoMe
 {
 bool Profiler::start()
@@ -13,16 +15,29 @@ bool Profiler::stop()
     return true;
 }
 
+const Profiler::ModulesContainer& Profiler::getLoadedModules()
+{
+    return LoadedModules;
+}
+
 void Profiler::loadModule(const Module &module)
 {
     if (!isProfilingActive)
         return;
 
-    Modules.push_back(module);
+    LoadedModules.push_back(module);
 }
 
-const Profiler::ModulesContainer& Profiler::getModules()
+void Profiler::unloadModule(const Module &module)
 {
-    return Modules;
+    if (!isProfilingActive)
+        return;
+
+    LoadedModules.erase(std::remove(LoadedModules.begin(), LoadedModules.end(), module));
+}
+
+void Profiler::unloadAllModules()
+{
+    LoadedModules.clear();
 }
 }

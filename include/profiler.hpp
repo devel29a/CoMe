@@ -36,11 +36,13 @@ public:
 
     bool start();
     bool stop();
-    const ModulesContainer& getModules();
+    const ModulesContainer& getLoadedModules();
     void loadModule(const Module &module);
+    void unloadModule(const Module &module);
+    void unloadAllModules();
 
 private:
-    ModulesContainer Modules;
+    ModulesContainer LoadedModules;
     bool isProfilingActive { false };
 };
 }

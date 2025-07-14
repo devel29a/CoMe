@@ -42,7 +42,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 find_package(DynamoRIOPackage)
 
 # Configure CoMe target
-add_library(CoMe SHARED src/main.cpp)
+add_library(CoMe SHARED src/main.cpp src/module.cpp src/profiler.cpp)
 target_include_directories(CoMe PRIVATE "${CMAKE_SOURCE_DIR}/include")
 
 # Configure DynamoRIO

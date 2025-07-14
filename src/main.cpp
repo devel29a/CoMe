@@ -29,78 +29,66 @@
 #include <x86intrin.h>
 #endif
 
-#include "module.hpp"
+#include "profiler.hpp"
 
 namespace
 {
-    CoMe::ModulesContainer ModuleCache;
-} 
+    CoMe::Profiler profiler;
+}
 
 void on_exit()
 {
     dr_printf("%s: called\n", __func__);
-
-    std::uint64_t UnloadTSC = __rdtsc();
-
-    // Do fake module unload before writing collected data
-    for (auto Module : ModuleCache)
-    {
-        if (Module.LoadTSC != 0 && Module.UnloadTSC == 0)
-        {
-            Module.UnloadTSC = UnloadTSC;
-        }
-
-        // Write collected module data
-        dr_printf("%s: StartAddr %llu, EndAddr %llu, Loaded %llu, Unloaded %llu, Path %s\n",
-            __func__, Module.StartAddress, Module.EndAddress, Module.LoadTSC, Module.UnloadTSC, Module.FullPath.c_str());
-    }
+    //std::uint64_t UnloadTSC = __rdtsc();
+    profiler.unloadAllModules();
 }
 
 void on_module_load(void *ctx, const module_data_t *data, bool loaded)
 {
-    if (data)
-    {
-        std::uint64_t LoadTSC = __rdtsc();
-
-        dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu\n",
-            __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED", LoadTSC);
-
-        ModuleCache.emplace_back(
-            reinterpret_cast<std::uint64_t>(data->start),
-            reinterpret_cast<std::uint64_t>(data->end),
-            LoadTSC, 0UL, std::string(data->full_path));
-    }
-    else
+    if (!data)
     {
         dr_printf("%s: data is NULL\n", __func__);
+        return;
     }
+
+    std::uint64_t LoadTSC = __rdtsc();
+
+    dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu\n",
+        __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED", LoadTSC);
+
+    CoMe::Module module {
+        reinterpret_cast<std::uint64_t>(data->start),
+        reinterpret_cast<std::uint64_t>(data->end),
+        LoadTSC,
+        0UL,
+        std::string(data->full_path)
+    };
+
+    profiler.loadModule(module);
 }
 
 void on_module_unload(void *ctx, const module_data_t *data)
 {
-    if (data)
-    {
-        std::uint64_t UnloadTSC = __rdtsc();
-
-        dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu\n",
-            __func__, ctx, data->start, data->full_path, "UNLOADED", UnloadTSC);
-
-        // Perhaps, searching backwards is better from performance perspective
-        for (auto Module : ModuleCache)
-        {
-            if (Module.StartAddress == reinterpret_cast<std::uint64_t>(data->start) &&
-                Module.EndAddress == reinterpret_cast<std::uint64_t>(data->end) &&
-                Module.LoadTSC != 0 && Module.UnloadTSC == 0 && Module.FullPath.compare(data->full_path) == 0)
-            {
-                Module.UnloadTSC = UnloadTSC;
-                break;
-            }
-        }
-    }
-    else
+    if (!data)
     {
         dr_printf("%s: data is NULL\n", __func__);
+        return;
     }
+
+    std::uint64_t UnloadTSC = __rdtsc();
+
+    dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu\n",
+        __func__, ctx, data->start, data->full_path, "UNLOADED", UnloadTSC);
+
+    CoMe::Module module {
+        reinterpret_cast<std::uint64_t>(data->start),
+        reinterpret_cast<std::uint64_t>(data->end),
+        0UL,
+        UnloadTSC,
+        std::string(data->full_path)
+    };
+
+    profiler.unloadModule(module);
 }
 
 #ifdef WINDOWS
@@ -173,50 +161,62 @@ dr_emit_flags_t on_trace(void *ctx, void *tag, instrlist_t *trace, bool translat
     return emit_flags;
 }
 
-DR_EXPORT
-void dr_client_main(client_id_t	id, int	argc, const char **argv)
+void enable_logging()
 {
     // Need to enable console logging specifically on Windows
 #ifdef WINDOWS
     dr_enable_console_printing();
 #endif
+}
 
-    // Show input data
+void print_application_arguments(client_id_t id, const int argc, const char **argv)
+{
     for (int i = 0; i < argc; ++i)
-    {
         dr_printf("%s: ClientID %u, argv[%d] %s\n", __func__, id, i, argv[i]);
-    }
+}
 
-    // Registers a callback function for the module load event
+void register_module_profiling_callbacks()
+{
     dr_register_module_load_event(on_module_load);
-
-    // Registers a callback function for the module unload event
     dr_register_module_unload_event(on_module_unload);
+}
 
-    // Registers a callback function for the thread initialization event
+void register_thread_profiling_callbacks()
+{
     dr_register_thread_init_event(on_thread_init);
-
-    // Registers a callback function for the thread exit event
     dr_register_thread_exit_event(on_thread_exit);
+}
 
-    // Registers a callback function for the basic block event
-    dr_register_bb_event(on_basicblock);
-
-    // Registers a callback function for the trace event
-    dr_register_trace_event(on_trace);
-
-    // Registers a callback for the process exit event
-    dr_register_exit_event(on_exit);
-
+void register_runtime_error_callbacks()
+{
 #ifdef WINDOWS
-    // Registers a callback function for the exception event
     dr_register_exception_event(on_exception);
 #endif
-
 #ifdef LINUX
-    // Registers a callback function for the signal event
     dr_register_signal_event(on_signal);
 #endif
+}
+
+void register_profiling_callbacks()
+{
+    register_module_profiling_callbacks();
+    register_thread_profiling_callbacks();
+    dr_register_bb_event(on_basicblock);
+    dr_register_trace_event(on_trace);
+    register_runtime_error_callbacks();
+    dr_register_exit_event(on_exit);
+}
+
+DR_EXPORT
+void dr_client_main(client_id_t	id, int	argc, const char **argv)
+{
+    if (!profiler.start())
+        return;
+
+    print_application_arguments(id, argc, argv);
+    register_profiling_callbacks();
+
+    profiler.stop();
 }
 
 

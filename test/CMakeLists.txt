@@ -33,13 +33,13 @@ else ()
     set(SIMPLE_LOOP_BINARY "${CMAKE_CURRENT_BINARY_DIR}/simple_loop${CMAKE_EXECUTABLE_SUFFIX}")
 endif ()
 
-add_executable(StartStopTest utest/start_stop.cpp ${CMAKE_SOURCE_DIR}/src/profiler.cpp)
-target_include_directories(StartStopTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
-target_link_libraries(StartStopTest gtest)
+add_executable(ModuleTest utest/module.cpp ${CMAKE_SOURCE_DIR}/src/module.cpp ${CMAKE_SOURCE_DIR}/src/profiler.cpp)
+target_include_directories(ModuleTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
+target_link_libraries(ModuleTest gtest)
 
-add_executable(ModulesTest utest/modules.cpp ${CMAKE_SOURCE_DIR}/src/module.cpp ${CMAKE_SOURCE_DIR}/src/profiler.cpp)
-target_include_directories(ModulesTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
-target_link_libraries(ModulesTest gtest)
+add_executable(ProfilerTest utest/profiler.cpp ${CMAKE_SOURCE_DIR}/src/module.cpp ${CMAKE_SOURCE_DIR}/src/profiler.cpp)
+target_include_directories(ProfilerTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
+target_link_libraries(ProfilerTest gtest)
 
 add_test(NAME SmokeTest
          COMMAND "${dynamorio_SOURCE_DIR}/bin64/drrun"
@@ -48,7 +48,8 @@ add_test(NAME SmokeTest
          "--"
          "${SIMPLE_LOOP_BINARY}")
 
-add_test(NAME StartStopTest
-         COMMAND StartStopTest)
-add_test(NAME ModulesTest
-         COMMAND ModulesTest)
+add_test(NAME ModuleTest
+         COMMAND ModuleTest)
+
+add_test(NAME ProfilerTest
+         COMMAND ProfilerTest)
