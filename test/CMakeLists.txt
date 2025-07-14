@@ -20,14 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 3.20)
 
 # Configure test application targets
 add_executable(simple_loop apps/simple_loop.cpp)
 
+if (MSVC)
+    set(COME_LIB_BINARY    "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${CMAKE_SHARED_LIBRARY_PREFIX}CoMe${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    set(SIMPLE_LOOP_BINARY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/simple_loop${CMAKE_EXECUTABLE_SUFFIX}")
+else ()
+    set(COME_LIB_BINARY    "${CMAKE_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}CoMe${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    set(SIMPLE_LOOP_BINARY "${CMAKE_CURRENT_BINARY_DIR}/simple_loop${CMAKE_EXECUTABLE_SUFFIX}")
+endif ()
+
 add_test(NAME SmokeTest
          COMMAND "${dynamorio_SOURCE_DIR}/bin64/drrun"
          "-c"
-         "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/CoMe.dll"
+         "${COME_LIB_BINARY}"
          "--"
-         "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/simple_loop.exe")
+         "${SIMPLE_LOOP_BINARY}")

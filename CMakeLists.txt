@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 3.20)
 
 project(CoMe)
 
@@ -94,7 +94,8 @@ endif ()
 message (STATUS "Target system: '${CMAKE_SYSTEM_NAME}'")
 
 # Set architecture type for DynamoRIO
-if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64")
+message(STATUS "PROCESSOR ${CMAKE_SYSTEM_PROCESSOR}")
+if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64" )
   target_compile_definitions(CoMe PUBLIC X86_64)
 else ()
   message (FATAL_ERROR "Unsupported architecture '${CMAKE_SYSTEM_PROCESSOR}'")
