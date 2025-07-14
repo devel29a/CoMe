@@ -53,9 +53,6 @@ void on_module_load(void *ctx, const module_data_t *data, bool loaded)
 
     std::uint64_t LoadTSC = __rdtsc();
 
-    dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu\n",
-        __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED", LoadTSC);
-
     CoMe::Module module {
         reinterpret_cast<std::uint64_t>(data->start),
         reinterpret_cast<std::uint64_t>(data->end),
@@ -64,7 +61,10 @@ void on_module_load(void *ctx, const module_data_t *data, bool loaded)
         std::string(data->full_path)
     };
 
-    profiler.loadModule(module);
+    auto err = profiler.loadModule(module);
+
+    dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu, Added: %u, Total Amount %u\n",
+        __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED", LoadTSC, err, profiler.getLoadedModules().size());
 }
 
 void on_module_unload(void *ctx, const module_data_t *data)
@@ -77,9 +77,6 @@ void on_module_unload(void *ctx, const module_data_t *data)
 
     std::uint64_t UnloadTSC = __rdtsc();
 
-    dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu\n",
-        __func__, ctx, data->start, data->full_path, "UNLOADED", UnloadTSC);
-
     CoMe::Module module {
         reinterpret_cast<std::uint64_t>(data->start),
         reinterpret_cast<std::uint64_t>(data->end),
@@ -88,21 +85,19 @@ void on_module_unload(void *ctx, const module_data_t *data)
         std::string(data->full_path)
     };
 
-    profiler.unloadModule(module);
+    auto err = profiler.unloadModule(module);
+
+    dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu, Removed: %u, Total Amount %u\n",
+        __func__, ctx, data->start, data->full_path, "UNLOADED", UnloadTSC, err, profiler.getLoadedModules().size());
 }
 
 #ifdef WINDOWS
 bool on_exception(void *ctx, dr_exception_t *e)
 {
     if (e)
-    {
-        dr_printf("%s: Context %p, Addr %p\n",
-            __func__, ctx, e->fault_fragment_info.cache_start_pc);
-    }
+        dr_printf("%s: Context %p, Addr %p\n", __func__, ctx, e->fault_fragment_info.cache_start_pc);
     else
-    {
         dr_printf("%s: exception is NULL\n", __func__);
-    }
 
     return true;
 }
@@ -114,14 +109,9 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
     dr_signal_action_t action = DR_SIGNAL_DELIVER;
 
     if (siginfo)
-    {
-        dr_printf("%s: Context %p, Addr %p, Sig %d\n",
-            __func__, ctx, siginfo->fault_fragment_info.cache_start_pc, siginfo->sig);
-    }
+        dr_printf("%s: Context %p, Addr %p, Sig %d\n", __func__, ctx, siginfo->fault_fragment_info.cache_start_pc, siginfo->sig);
     else
-    {
         dr_printf("%s: siginfo is NULL\n", __func__);
-    }
 
     return action;
 }
@@ -140,12 +130,14 @@ void on_thread_exit(void *ctx)
 dr_emit_flags_t on_basicblock(void *ctx, void *tag, instrlist_t *bb, bool for_trace, bool translating)
 {
     dr_emit_flags_t emit_flags = DR_EMIT_DEFAULT;
+/*
+    auto instr = instrlist_first(bb);
+    auto app_pc = instr_get_app_pc(instr);
+    auto module = profiler.getModuleNameByAddress(reinterpret_cast<std::uint64_t>(app_pc));
 
-    /*
-    dr_printf("%s: Context %p, Tag %p, BB %p, ForTrace: %d, Translating %d\n",
-        __func__, ctx, tag, bb, for_trace, translating);
-    */
-
+    dr_printf("%s: Context %p, Tag %p, BB %p (APP PC %p), ForTrace: %d, Translating %d, Module: '%s' (%u)\n",
+        __func__, ctx, tag, bb, app_pc, for_trace, translating, module.c_str(), profiler.getLoadedModules().size());
+*/
     return emit_flags;
 }
 
@@ -215,8 +207,6 @@ void dr_client_main(client_id_t	id, int	argc, const char **argv)
 
     print_application_arguments(id, argc, argv);
     register_profiling_callbacks();
-
-    profiler.stop();
 }
 
 

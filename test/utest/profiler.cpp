@@ -1,4 +1,5 @@
 #include "profiler.hpp"
+#include "basicblock.hpp"
 
 #include <gtest/gtest.h>
 
@@ -17,8 +18,13 @@ protected:
     {
         ModulesContainer container;
         for (unsigned i = 0; i < amount; i++)
-            container.emplace_back(Module(0U, 0U, 0U, 0U, std::string("mod") + std::to_string(i)));
+            container.emplace_back(Module(0U * 1000, 100U, 0U, 0U, std::string("mod") + std::to_string(i)));
         return container;
+    }
+
+    const std::uint64_t getInnerAddress(const std::uint64_t start, const std::uint64_t end)
+    {
+        return (start + end) / 2;
     }
 };
 
@@ -31,10 +37,10 @@ TEST_F(ProfilerTest, StartStopProfiling) {
 TEST_F(ProfilerTest, AllModulesReportedDuringActiveProfiling) {
     const auto modulesContainer = createTestModules(2);
     Profiler p;
-    p.start();
-    p.loadModule(modulesContainer[0]);
-    p.loadModule(modulesContainer[1]);
-    p.stop();
+    EXPECT_EQ(p.start(), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[0]), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[1]), true);
+    EXPECT_EQ(p.stop(), true);
     auto modules = p.getLoadedModules();
     EXPECT_EQ(modules.size(), 2);
     EXPECT_EQ(modules[0] == modulesContainer[0], true);
@@ -44,12 +50,12 @@ TEST_F(ProfilerTest, AllModulesReportedDuringActiveProfiling) {
 TEST_F(ProfilerTest, SomeModulesReportedBeforeAndAfterActiveProfiling) {
     Profiler p;
     const auto modulesContainer = createTestModules(4);
-    p.loadModule(modulesContainer[0]);
-    p.start();
-    p.loadModule(modulesContainer[1]);
-    p.loadModule(modulesContainer[2]);
-    p.stop();
-    p.loadModule(modulesContainer[3]);
+    EXPECT_EQ(p.loadModule(modulesContainer[0]), false);
+    EXPECT_EQ(p.start(), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[1]), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[2]), true);
+    EXPECT_EQ(p.stop(), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[3]), false);
     auto modules = p.getLoadedModules();
     EXPECT_EQ(modules.size(), 2);
     EXPECT_EQ(modules[0] == modulesContainer[1], true);
@@ -64,23 +70,54 @@ TEST_F(ProfilerTest, UnloadModule) {
     EXPECT_EQ(m.LoadTSC,      56U);
     EXPECT_EQ(m.UnloadTSC,    78U);
     EXPECT_EQ(m.FullPath,  std::string("mod1"));
-    p.start();
-    p.loadModule(m);
-    p.unloadModule(m);
-    p.stop();
+    EXPECT_EQ(p.start(), true);
+    EXPECT_EQ(p.loadModule(m), true);
+    EXPECT_EQ(p.unloadModule(m), true);
+    EXPECT_EQ(p.stop(), true);
     EXPECT_EQ(p.getLoadedModules().size(), 0);
 }
 
 TEST_F(ProfilerTest, UnloadModuleAllModules) {
     const auto modulesContainer = createTestModules(2);
     Profiler p;
-    p.start();
-    p.loadModule(modulesContainer[0]);
-    p.loadModule(modulesContainer[1]);
+    EXPECT_EQ(p.start(), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[0]), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[1]), true);
     p.unloadAllModules();
-    p.stop();
+    EXPECT_EQ(p.stop(), true);
     auto modules = p.getLoadedModules();
     EXPECT_EQ(modules.size(), 0);
+}
+
+TEST_F(ProfilerTest, GetModuleNameByStartAddress) {
+    const auto modulesContainer = createTestModules(1);
+    Profiler p;
+    EXPECT_EQ(p.start(), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[0]), true);
+    EXPECT_EQ(p.stop(), true);
+    auto name = p.getModuleNameByAddress(modulesContainer[0].StartAddress);
+    EXPECT_EQ(name, std::string("mod0"));
+}
+
+TEST_F(ProfilerTest, GetModuleNameByEndAddress) {
+    const auto modulesContainer = createTestModules(1);
+    Profiler p;
+    EXPECT_EQ(p.start(), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[0]), true);
+    EXPECT_EQ(p.stop(), true);
+    auto name = p.getModuleNameByAddress(modulesContainer[0].EndAddress);
+    EXPECT_EQ(name, std::string("mod0"));
+}
+
+TEST_F(ProfilerTest, GetModuleNameByInnerAddress) {
+    const auto modulesContainer = createTestModules(1);
+    Profiler p;
+    EXPECT_EQ(p.start(), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[0]), true);
+    EXPECT_EQ(p.stop(), true);
+    auto innerAddress = getInnerAddress(modulesContainer[0].StartAddress, modulesContainer[0].EndAddress);
+    auto name = p.getModuleNameByAddress(innerAddress);
+    EXPECT_EQ(name, std::string("mod0"));
 }
 
 }  // namespace

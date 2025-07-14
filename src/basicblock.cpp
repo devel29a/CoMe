@@ -20,3 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "basicblock.hpp"
+
+namespace CoMe
+{
+bool BasicBlock::operator==(const CoMe::BasicBlock& basicblock)
+{
+    return this->StartAddress == basicblock.StartAddress &&
+           this->EndAddress   == basicblock.EndAddress     ;
+}
+}

@@ -37,9 +37,10 @@ public:
     bool start();
     bool stop();
     const ModulesContainer& getLoadedModules();
-    void loadModule(const Module &module);
-    void unloadModule(const Module &module);
+    bool loadModule(const Module &module);
+    bool unloadModule(const Module &module);
     void unloadAllModules();
+    const std::string& getModuleNameByAddress(const std::uint64_t address);
 
 private:
     ModulesContainer LoadedModules;

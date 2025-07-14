@@ -20,27 +20,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "module.hpp"
+#pragma once
+
+#include <cstdint>
 
 namespace CoMe
 {
-const Module& Module::operator=(const Module& module)
+struct BasicBlock
 {
-    this->StartAddress = module.StartAddress;
-    this->EndAddress   = module.EndAddress;
-    this->LoadTSC      = module.LoadTSC;
-    this->UnloadTSC    = module.UnloadTSC;
-    this->FullPath     = module.FullPath;
+    std::uint64_t StartAddress;
+    std::uint64_t EndAddress;
 
-    return *this;
-}
-
-bool Module::operator==(const CoMe::Module& module)
-{
-    return this->StartAddress == module.StartAddress &&
-           this->EndAddress   == module.EndAddress   &&
-           this->LoadTSC      == module.LoadTSC      &&
-           this->UnloadTSC    == module.UnloadTSC    &&
-           this->FullPath     == module.FullPath       ;
-}
-}
+    bool operator==(const CoMe::BasicBlock& module);
+};
+} // namespace CoMe
