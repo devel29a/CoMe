@@ -20,39 +20,40 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#pragma once
+
 #include <cstdint>
 #include <string>
 #include <vector>
 
 namespace CoMe
 {
-namespace Module
-{    
-
-struct Instance
+struct Module
 {
-    Instance(
-        std::uint64_t StartAddr_,
-        std::uint64_t EndAddr_,
-        std::uint64_t LoadTSC_,
-        std::uint64_t UnloadTSC_,
-        const char * FullPath_)
+    std::uint64_t StartAddress { 0 };
+    std::uint64_t EndAddress { 0 };
+    std::uint64_t LoadTSC { 0 };
+    std::uint64_t UnloadTSC { 0 };
+    std::string FullPath;
+
+    Module() = default;
+
+    Module(const std::uint64_t StartAddress_,
+           const std::uint64_t EndAddress_,
+           const std::uint64_t LoadTSC_,
+           const std::uint64_t UnloadTSC_,
+           const std::string &FullPath_)
     {
-        StartAddr = StartAddr_;
-        EndAddr = EndAddr_;
+        StartAddress = StartAddress_;
+        EndAddress = EndAddress_;
         LoadTSC = LoadTSC_;
         UnloadTSC = UnloadTSC_;
         FullPath = FullPath_;
     }
 
-    std::uint64_t StartAddr { 0 };
-    std::uint64_t EndAddr { 0 };
-    std::uint64_t LoadTSC { 0 };
-    std::uint64_t UnloadTSC { 0 };
-    std::string FullPath;
+    const Module& operator=(const Module& module);
+    bool operator==(const CoMe::Module& module);
 };
 
-using Cache = std::vector<Module::Instance>;
-
-} // Module
-} // CoMe
+using ModulesContainer = std::vector<Module>;
+}

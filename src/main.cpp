@@ -33,7 +33,7 @@
 
 namespace
 {
-    CoMe::Module::Cache ModuleCache;
+    CoMe::ModulesContainer ModuleCache;
 } 
 
 void on_exit()
@@ -52,7 +52,7 @@ void on_exit()
 
         // Write collected module data
         dr_printf("%s: StartAddr %llu, EndAddr %llu, Loaded %llu, Unloaded %llu, Path %s\n",
-            __func__, Module.StartAddr, Module.EndAddr, Module.LoadTSC, Module.UnloadTSC, Module.FullPath.c_str());
+            __func__, Module.StartAddress, Module.EndAddress, Module.LoadTSC, Module.UnloadTSC, Module.FullPath.c_str());
     }
 }
 
@@ -68,7 +68,7 @@ void on_module_load(void *ctx, const module_data_t *data, bool loaded)
         ModuleCache.emplace_back(
             reinterpret_cast<std::uint64_t>(data->start),
             reinterpret_cast<std::uint64_t>(data->end),
-            LoadTSC, 0U, data->full_path);
+            LoadTSC, 0UL, std::string(data->full_path));
     }
     else
     {
@@ -88,8 +88,8 @@ void on_module_unload(void *ctx, const module_data_t *data)
         // Perhaps, searching backwards is better from performance perspective
         for (auto Module : ModuleCache)
         {
-            if (Module.StartAddr == reinterpret_cast<std::uint64_t>(data->start) &&
-                Module.EndAddr == reinterpret_cast<std::uint64_t>(data->end) &&
+            if (Module.StartAddress == reinterpret_cast<std::uint64_t>(data->start) &&
+                Module.EndAddress == reinterpret_cast<std::uint64_t>(data->end) &&
                 Module.LoadTSC != 0 && Module.UnloadTSC == 0 && Module.FullPath.compare(data->full_path) == 0)
             {
                 Module.UnloadTSC = UnloadTSC;
