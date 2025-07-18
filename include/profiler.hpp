@@ -28,6 +28,7 @@
 #include "module.hpp"
 #include "symbol.hpp"
 #include "thread.hpp"
+#include "sample.hpp"
 
 namespace CoMe
 {
@@ -37,12 +38,14 @@ public:
     using ModulesContainer = std::vector<Module>;
     using SymbolsContainer = std::vector<Symbol>;
     using ThreadsContainer = std::vector<Thread>;
+    using SamplesContainer = std::vector<Sample>;
 
     bool start();
     bool stop();
     const ModulesContainer& getLoadedModules();
     const SymbolsContainer& getRegisteredSymbols();
     const ThreadsContainer& getStartedThreads();
+    const SamplesContainer& getRecordedSamples();
     bool loadModule(const Module &module);
     bool unloadModule(const std::string &module);
     void unloadAllModules(const std::uint64_t unloadTSC);
@@ -51,11 +54,13 @@ public:
     const Symbol& getSymbolByName(const std::string &symbol, const std::string &module);
     bool startThread(const Thread &thread);
     bool finishThread(const Thread &thread);
+    bool recordSample(const Sample &sample);
 
 private:
     ModulesContainer LoadedModules;
     SymbolsContainer RegisteredSymbols;
     ThreadsContainer StartedThreads;
+    SamplesContainer RecordedSamples;
     bool isProfilingActive { false };
 };
 }

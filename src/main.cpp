@@ -161,9 +161,20 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
     if (!siginfo)
         dr_printf("%s: siginfo is NULL\n", __func__);
 
+    /*
     dr_printf("%s: Context %p, DRContext %p, SP %p, BP %p, Sig %d\n", __func__, ctx,
         siginfo->drcontext, siginfo->mcontext->xsp, siginfo->mcontext->xbp, siginfo->sig);
+    */
     
+    CoMe::Sample s {
+        reinterpret_cast<std::uint64_t>(ctx),
+        reinterpret_cast<std::uint64_t>(siginfo->mcontext->xsp),
+        reinterpret_cast<std::uint64_t>(siginfo->mcontext->xbp),
+        __rdtsc()
+    };
+
+    profiler.recordSample(s);
+
     if (siginfo->sig == SIGPROF)
         action = DR_SIGNAL_SUPPRESS;
 

@@ -94,6 +94,11 @@ const Profiler::ThreadsContainer& Profiler::getStartedThreads()
     return StartedThreads;
 }
 
+const Profiler::SamplesContainer& Profiler::getRecordedSamples()
+{
+    return RecordedSamples;
+}
+
 bool Profiler::loadModule(const Module &module)
 {
     if (!isProfilingActive)
@@ -175,4 +180,14 @@ bool Profiler::finishThread(const Thread &thread)
     StartedThreads.erase(it);
     return true;
 }
+
+bool Profiler::recordSample(const Sample &sample)
+{
+    if (!isProfilingActive)
+        return false;
+
+    RecordedSamples.push_back(sample);
+    return true;
+}
+
 }

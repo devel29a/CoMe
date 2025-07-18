@@ -38,7 +38,7 @@ protected:
     void SetUp() override {}
     void TearDown() override {}
 
-    Profiler::ModulesContainer createTestModules(unsigned amount)
+    auto createTestModules(unsigned amount)
     {
         Profiler::ModulesContainer container;
         for (unsigned i = 0; i < amount; i++)
@@ -46,11 +46,19 @@ protected:
         return container;
     }
 
-    Profiler::ThreadsContainer createTestThreads(unsigned amount)
+    auto createTestThreads(unsigned amount)
     {
         Profiler::ThreadsContainer container;
         for (unsigned i = 0; i < amount; i++)
             container.emplace_back(Thread(i + 1000, 0U, i));
+        return container;
+    }
+
+    auto createTestSamples(unsigned amount)
+    {
+        Profiler::SamplesContainer container;
+        for (unsigned i = 0; i < amount; i++)
+            container.emplace_back(Sample(i, i + 1000U, i + 2000U, i));
         return container;
     }
 
@@ -183,6 +191,21 @@ TEST_F(ProfilerTest, GetAllStartedThreads) {
     EXPECT_EQ(startedThreads.size(), 2);
     EXPECT_EQ(startedThreads[0] == threads[1], true);
     EXPECT_EQ(startedThreads[1] == threads[2], true);
+}
+
+TEST_F(ProfilerTest, ReportSample) {
+    Profiler p;
+    auto samples = createTestSamples(4);
+    EXPECT_EQ(p.recordSample(samples[0]), false);
+    EXPECT_EQ(p.start(), true);
+    EXPECT_EQ(p.recordSample(samples[1]), true);
+    EXPECT_EQ(p.recordSample(samples[2]), true);
+    EXPECT_EQ(p.stop(), true);
+    EXPECT_EQ(p.recordSample(samples[3]), false);
+    auto recordedSamples = p.getRecordedSamples();
+    EXPECT_EQ(recordedSamples.size(), 2);
+    EXPECT_EQ(recordedSamples[0] == samples[1], true);
+    EXPECT_EQ(recordedSamples[1] == samples[2], true);
 }
 
 }  // namespace

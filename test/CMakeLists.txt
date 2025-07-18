@@ -52,6 +52,10 @@ add_executable(ThreadTest utest/thread.cpp ${CMAKE_SOURCE_DIR}/src/profiler/thre
 target_include_directories(ThreadTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(ThreadTest gtest)
 
+add_executable(SampleTest utest/sample.cpp ${CMAKE_SOURCE_DIR}/src/profiler/sample.cpp)
+target_include_directories(SampleTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
+target_link_libraries(SampleTest gtest)
+
 file(GLOB PROFILER_SOURCES "${CMAKE_SOURCE_DIR}/src/profiler/*.cpp")
 add_executable(ProfilerTest utest/profiler.cpp ${PROFILER_SOURCES})
 target_include_directories(ProfilerTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
@@ -82,6 +86,9 @@ add_test(NAME SymbolTest
 
 add_test(NAME ThreadTest
          COMMAND ThreadTest)
+
+add_test(NAME SampleTest
+         COMMAND SampleTest)
 
 add_test(NAME ProfilerTest
          COMMAND ProfilerTest)
