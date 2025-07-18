@@ -135,15 +135,7 @@ void on_module_unload(void *ctx, const module_data_t *data)
 
     std::uint64_t UnloadTSC = __rdtsc();
 
-    CoMe::Module module {
-        reinterpret_cast<std::uint64_t>(data->start),
-        reinterpret_cast<std::uint64_t>(data->end),
-        0UL,
-        UnloadTSC,
-        std::string(data->full_path)
-    };
-
-    auto err = profiler.unloadModule(module);
+    auto err = profiler.unloadModule(std::string(data->full_path));
 
     dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu, Removed: %u, Total Amount %u\n",
         __func__, ctx, data->start, data->full_path, "UNLOADED", UnloadTSC, err, profiler.getLoadedModules().size());
@@ -169,7 +161,8 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
     if (!siginfo)
         dr_printf("%s: siginfo is NULL\n", __func__);
 
-    dr_printf("%s: Context %p, DRContext %p, Addr %p, Sig %d\n", __func__, ctx, siginfo->drcontext, siginfo->fault_fragment_info.cache_start_pc, siginfo->sig);
+    dr_printf("%s: Context %p, DRContext %p, SP %p, BP %p, Sig %d\n", __func__, ctx,
+        siginfo->drcontext, siginfo->mcontext->xsp, siginfo->mcontext->xbp, siginfo->sig);
     
     if (siginfo->sig == SIGPROF)
         action = DR_SIGNAL_SUPPRESS;

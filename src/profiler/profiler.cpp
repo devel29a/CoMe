@@ -31,9 +31,18 @@ namespace
 auto findLoadedModuleByAddress(const CoMe::Profiler::ModulesContainer &modules, const std::uint64_t address)
 {
     return std::find_if(modules.cbegin(), modules.cend(),
-        [&](const auto m)
+        [&](const auto &m)
         {
             return m.StartAddress <= address && address <= m.EndAddress;
+        });
+}
+
+auto findLoadedModuleByName(const CoMe::Profiler::ModulesContainer &modules, const std::string &module)
+{
+    return std::find_if(modules.cbegin(), modules.cend(),
+        [&](const auto &m)
+        {
+            return m.FullPath == module;
         });
 }
 
@@ -90,17 +99,18 @@ bool Profiler::loadModule(const Module &module)
     if (!isProfilingActive)
         return false;
 
-    LoadedModules.push_back(module);
+    LoadedModules.emplace_back(Module(module.StartAddress, module.EndAddress, module.LoadTSC, 0U, module.FullPath));
     return true;
 }
 
-bool Profiler::unloadModule(const Module &module)
+bool Profiler::unloadModule(const std::string &module)
 {
     if (!isProfilingActive)
         return false;
 
-    auto it = std::remove(LoadedModules.begin(), LoadedModules.end(), module);
-    if (LoadedModules.cend() == it)
+    auto it = findLoadedModuleByName(this->getLoadedModules(), module);
+
+    if (!isModuleLoaded(this->getLoadedModules(), it))
         return false;
 
     LoadedModules.erase(it);

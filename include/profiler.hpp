@@ -44,7 +44,7 @@ public:
     const SymbolsContainer& getRegisteredSymbols();
     const ThreadsContainer& getStartedThreads();
     bool loadModule(const Module &module);
-    bool unloadModule(const Module &module);
+    bool unloadModule(const std::string &module);
     void unloadAllModules(const std::uint64_t unloadTSC);
     const std::string& getModuleNameByAddress(const std::uint64_t address);
     bool registerSymbol(const Symbol &symbol);

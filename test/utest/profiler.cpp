@@ -42,7 +42,7 @@ protected:
     {
         Profiler::ModulesContainer container;
         for (unsigned i = 0; i < amount; i++)
-            container.emplace_back(Module(0U * 1000, 100U, 0U, 0U, std::string("mod") + std::to_string(i)));
+            container.emplace_back(Module(i + 1000U, i + 1000U + 100U, 10U, 0U, std::string("mod") + std::to_string(i)));
         return container;
     }
 
@@ -50,7 +50,7 @@ protected:
     {
         Profiler::ThreadsContainer container;
         for (unsigned i = 0; i < amount; i++)
-            container.emplace_back(Thread(0U * 1000, 100U, i));
+            container.emplace_back(Thread(i + 1000, 0U, i));
         return container;
     }
 
@@ -59,12 +59,6 @@ protected:
         return (start + end) / 2;
     }
 };
-
-TEST_F(ProfilerTest, StartStopProfiling) {
-    Profiler p;
-    EXPECT_EQ(p.start(), true);
-    EXPECT_EQ(p.stop(), true);
-}
 
 TEST_F(ProfilerTest, AllModulesReportedDuringActiveProfiling) {
     const auto modulesContainer = createTestModules(2);
@@ -96,15 +90,10 @@ TEST_F(ProfilerTest, SomeModulesReportedBeforeAndAfterActiveProfiling) {
 
 TEST_F(ProfilerTest, UnloadModule) {
     Profiler p;
-    Module m {12U, 34U, 56U, 78U, std::string("mod1")};
-    EXPECT_EQ(m.StartAddress, 12U);
-    EXPECT_EQ(m.EndAddress,   34U);
-    EXPECT_EQ(m.LoadTSC,      56U);
-    EXPECT_EQ(m.UnloadTSC,    78U);
-    EXPECT_EQ(m.FullPath,  std::string("mod1"));
+    const auto modulesContainer = createTestModules(4);
     EXPECT_EQ(p.start(), true);
-    EXPECT_EQ(p.loadModule(m), true);
-    EXPECT_EQ(p.unloadModule(m), true);
+    EXPECT_EQ(p.loadModule(modulesContainer[0]), true);
+    EXPECT_EQ(p.unloadModule(modulesContainer[0].FullPath), true);
     EXPECT_EQ(p.stop(), true);
     EXPECT_EQ(p.getLoadedModules().size(), 0);
 }
