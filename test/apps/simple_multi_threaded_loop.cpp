@@ -20,48 +20,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "symbol.hpp"
+#include <thread>
 
-#include <gtest/gtest.h>
+int foo(const int count)
+{
+    int ret = 0;
 
-namespace CoMe {
-namespace Test {
-namespace {
+    for (int i = 0; i < count; i++)
+    {
+        ret += i;
+    }
 
-class SymbolTest : public testing::Test {
-protected:
-    SymbolTest() {}
-    ~SymbolTest() override {}
-    void SetUp() override {}
-    void TearDown() override {}
-};
-
-TEST_F(SymbolTest, CreateSymbolObject) {
-    Symbol s { std::string("sym0"), 0U, std::string("mod0") };
-    EXPECT_EQ(s.Name, std::string("sym0"));
-    EXPECT_EQ(s.Address, 0U);
-    EXPECT_EQ(s.Module, std::string("mod0"));
+    return ret;
 }
 
-TEST_F(SymbolTest, CopySymbolObject) {
-    Symbol sym1 { std::string("sym0"), 0U, std::string("mod0") };
-    Symbol sym2 = sym1;
-    EXPECT_EQ(sym2.Name, std::string("sym0"));
-    EXPECT_EQ(sym2.Address, 0U);
-    EXPECT_EQ(sym2.Module, std::string("mod0"));
-}
+int main(int argc, char **argv)
+{
+    std::thread t1(foo, argc * 1000);
+    std::thread t2(foo, argc * 1000);
 
-TEST_F(SymbolTest, CompareSymbolObject) {
-    Symbol sym1 { std::string("sym0"), 0U, std::string("mod0") };
-    Symbol sym2 = sym1;
-    EXPECT_EQ(sym1 == sym2, true);
-}
-
-}  // namespace
-}  // namespace Test
-}  // namespace CoMe
-
-int main(int argc, char **argv) {
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    t1.join();
+    t2.join();
 }

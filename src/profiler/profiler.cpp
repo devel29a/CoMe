@@ -25,6 +25,38 @@
 #include <algorithm>
 #include <iostream>
 
+namespace
+{
+
+auto findLoadedModuleByAddress(const CoMe::Profiler::ModulesContainer &modules, const std::uint64_t address)
+{
+    return std::find_if(modules.cbegin(), modules.cend(),
+        [&](const auto m)
+        {
+            return m.StartAddress <= address && address <= m.EndAddress;
+        });
+}
+
+bool isModuleLoaded(const CoMe::Profiler::ModulesContainer &modules, CoMe::Profiler::ModulesContainer::const_iterator iter)
+{
+    return iter != modules.cend();
+}
+
+auto findRegisterSymbolByName(const CoMe::Profiler::SymbolsContainer &symbols, const std::string &name, const std::string &module)
+{
+    return std::find_if(symbols.cbegin(), symbols.cend(),
+        [&](const auto s)
+        {
+            return s.Name == name && s.Module == module;
+        });
+}
+
+bool isSymbolRegistered(const CoMe::Profiler::SymbolsContainer &symbols, CoMe::Profiler::SymbolsContainer::const_iterator iter)
+{
+    return iter != symbols.cend();
+}
+}
+
 namespace CoMe
 {
 bool Profiler::start()
@@ -43,6 +75,16 @@ const Profiler::ModulesContainer& Profiler::getLoadedModules()
     return LoadedModules;
 }
 
+const Profiler::SymbolsContainer& Profiler::getRegisteredSymbols()
+{
+    return RegisteredSymbols;
+}
+
+const Profiler::ThreadsContainer& Profiler::getStartedThreads()
+{
+    return StartedThreads;
+}
+
 bool Profiler::loadModule(const Module &module)
 {
     if (!isProfilingActive)
@@ -57,7 +99,11 @@ bool Profiler::unloadModule(const Module &module)
     if (!isProfilingActive)
         return false;
 
-    LoadedModules.erase(std::remove(LoadedModules.begin(), LoadedModules.end(), module));
+    auto it = std::remove(LoadedModules.begin(), LoadedModules.end(), module);
+    if (LoadedModules.cend() == it)
+        return false;
+
+    LoadedModules.erase(it);
     return true;
 }
 
@@ -69,14 +115,9 @@ void Profiler::unloadAllModules(const std::uint64_t unloadTSC)
 const std::string& Profiler::getModuleNameByAddress(const std::uint64_t address)
 {
     static const std::string EmptyPath;
+    auto it = findLoadedModuleByAddress(this->getLoadedModules(), address);
 
-    auto it = std::find_if(LoadedModules.cbegin(), LoadedModules.cend(),
-    [&](decltype(LoadedModules)::const_reference cref)
-    {
-        return cref.StartAddress <= address && address <= cref.EndAddress;
-    });
-
-    if (LoadedModules.end() == it)
+    if (!isModuleLoaded(this->getLoadedModules(), it))
         return EmptyPath;
 
     return it->FullPath;
@@ -94,18 +135,34 @@ bool Profiler::registerSymbol(const Symbol &symbol)
 const Symbol& Profiler::getSymbolByName(const std::string &symbol, const std::string &module)
 {
     static const Symbol EmptySymbol;
+    const auto it = findRegisterSymbolByName(this->getRegisteredSymbols(), symbol, module);
 
-    const auto s = std::find_if(RegisteredSymbols.cbegin(), RegisteredSymbols.cend(),
-        [&](decltype(RegisteredSymbols)::const_reference cref)
-        {
-            return cref.Name == symbol && cref.Module == module;
-        }
-    );
+    if (!isSymbolRegistered(this->getRegisteredSymbols(), it))
+        return EmptySymbol;
 
-    if (s != RegisteredSymbols.end())
-        return *s;
-
-    return EmptySymbol;
+    return *it;
 }
 
+bool Profiler::startThread(const Thread &thread)
+{
+    if (!isProfilingActive)
+        return false;
+
+    StartedThreads.push_back(thread);
+    return true;
+}
+
+bool Profiler::finishThread(const Thread &thread)
+{
+    if (!isProfilingActive)
+        return false;
+
+    auto it = std::remove(StartedThreads.begin(), StartedThreads.end(), thread);
+
+    if (StartedThreads.cend() == it)
+        return false;
+
+    StartedThreads.erase(it);
+    return true;
+}
 }

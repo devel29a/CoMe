@@ -39,17 +39,11 @@ message(STATUS "Selected build mode: ${CMAKE_BUILD_TYPE}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
-find_package(DynamoRIOPackage)
-
 # Configure CoMe target
-add_library(CoMe SHARED src/main.cpp src/symbol.cpp src/module.cpp src/profiler.cpp)
+file(GLOB_RECURSE  COME_SOURCES "src/*.cpp")
+message(STATUS "Building sources: ${COME_SOURCES}")
+add_library(CoMe SHARED ${COME_SOURCES})
 target_include_directories(CoMe PRIVATE "${CMAKE_SOURCE_DIR}/include")
-
-# Configure DynamoRIO
-configure_DynamoRIO_client(CoMe)
-
-# Configure DynamoRIO extensions
-use_DynamoRIO_extension(CoMe drsyms)
 
 # Set platform type for DynamoRIO
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
@@ -72,8 +66,16 @@ endif ()
 
 message (STATUS "Target architecture: '${CMAKE_SYSTEM_PROCESSOR}'")
 
+find_package(DynamoRIOPackage)
+
 if (BUILD_TEST)
     include(CTest)
     find_package(GTest)
     add_subdirectory(test)
 endif()
+
+# Configure DynamoRIO
+configure_DynamoRIO_client(CoMe)
+
+# Configure DynamoRIO extensions
+use_DynamoRIO_extension(CoMe drsyms)

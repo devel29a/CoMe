@@ -30,6 +30,11 @@
 #include <x86intrin.h>
 #endif
 
+#ifdef LINUX
+#include <sys/time.h>
+#include <signal.h>
+#endif
+
 #include "profiler.hpp"
 
 namespace
@@ -47,12 +52,48 @@ void on_exit()
     drsym_exit();
 }
 
+void activate_profiling_signal(module_data_t *module)
+{
+#ifdef LINUX
+    if (!module)
+    {
+        dr_printf("%s: Unable to find module\n", __func__);
+        return;
+    }
+
+    auto func = dr_get_proc_address(module->handle, "setitimer");
+
+    if (func)
+    {
+        using Func = int(*)(int, const itimerval*, itimerval*);
+        auto f = reinterpret_cast<Func>(func);
+        dr_printf("%s: Found [%p] '%s' in %s\n", __func__, func, "setitimer", module->full_path);
+
+        itimerval rate;
+        rate.it_value.tv_sec = 0;
+        rate.it_value.tv_usec = 100;
+        rate.it_interval.tv_sec = 0;
+        rate.it_interval.tv_usec = 100;
+
+        f(ITIMER_PROF, &rate, NULL);
+    }
+#endif
+}
+
 bool on_symbol(const char *name, size_t modoffs, void *data)
 {
-    auto module = static_cast<const std::string *>(data);
-    CoMe::Symbol symbol { std::string(name), modoffs, *module };
+    auto module = static_cast<module_data_t *>(data);
+    CoMe::Symbol symbol { std::string(name), modoffs, std::string(module->full_path) };
     profiler.registerSymbol(symbol);
-    dr_printf("%s: [0x%llx] %s from %s\n", __func__, modoffs, name, module->c_str());
+
+    if (symbol.Name.find("setitimer") == 0)
+    {
+        dr_printf("%s: [0x%llx] %s from %s\n", __func__, symbol.Address, symbol.Name.c_str(), symbol.Module.c_str());
+
+        activate_profiling_signal(module);
+    }
+
+
     return true;
 }
 
@@ -79,7 +120,9 @@ void on_module_load(void *ctx, const module_data_t *data, bool loaded)
     dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu, Added: %u, Total Amount %u\n",
         __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED", LoadTSC, err, profiler.getLoadedModules().size());
 
-    drsym_enumerate_symbols(module.FullPath.c_str(), on_symbol, &module.FullPath, DRSYM_DEFAULT_FLAGS);
+    auto data_copy = dr_copy_module_data(data);
+    drsym_enumerate_symbols(module.FullPath.c_str(), on_symbol, data_copy, DRSYM_DEFAULT_FLAGS);
+    dr_free_module_data(data_copy);
 }
 
 void on_module_unload(void *ctx, const module_data_t *data)
@@ -123,10 +166,13 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
 {
     dr_signal_action_t action = DR_SIGNAL_DELIVER;
 
-    if (siginfo)
-        dr_printf("%s: Context %p, Addr %p, Sig %d\n", __func__, ctx, siginfo->fault_fragment_info.cache_start_pc, siginfo->sig);
-    else
+    if (!siginfo)
         dr_printf("%s: siginfo is NULL\n", __func__);
+
+    dr_printf("%s: Context %p, DRContext %p, Addr %p, Sig %d\n", __func__, ctx, siginfo->drcontext, siginfo->fault_fragment_info.cache_start_pc, siginfo->sig);
+    
+    if (siginfo->sig == SIGPROF)
+        action = DR_SIGNAL_SUPPRESS;
 
     return action;
 }
@@ -134,12 +180,32 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
 
 void on_thread_init(void *ctx)
 {
-    dr_printf("%s: called\n", __func__);
+    std::uint64_t StartTSC = __rdtsc();
+
+    CoMe::Thread thread {
+        StartTSC,
+        0UL,
+        reinterpret_cast<std::uint64_t>(ctx)
+    };
+
+    profiler.startThread(thread);
+
+    dr_printf("%s: Thread %p started at %llu\n", __func__, ctx, StartTSC);
 }
 
 void on_thread_exit(void *ctx)
 {
-    dr_printf("%s: called\n", __func__);
+    std::uint64_t FinishTSC = __rdtsc();
+
+    CoMe::Thread thread {
+        0UL,
+        FinishTSC,
+        reinterpret_cast<std::uint64_t>(ctx)
+    };
+
+    profiler.finishThread(thread);
+
+    dr_printf("%s: Thread %p finished at %llu\n", __func__, ctx, FinishTSC);
 }
 
 dr_emit_flags_t on_basicblock(void *ctx, void *tag, instrlist_t *bb, bool for_trace, bool translating)
@@ -160,10 +226,7 @@ dr_emit_flags_t on_trace(void *ctx, void *tag, instrlist_t *trace, bool translat
 {
     dr_emit_flags_t emit_flags = DR_EMIT_DEFAULT;
 
-    /*
-    dr_printf("%s: Context %p, Tag %p, Trace %p, Translating %d\n",
-        __func__, ctx, tag, trace, translating);
-    */
+    //dr_printf("%s: Context %p, Tag %p, Trace %p, Translating %d\n", __func__, ctx, tag, trace, translating);
 
     return emit_flags;
 }

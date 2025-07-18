@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "symbol.hpp"
+#include "thread.hpp"
 
 #include <gtest/gtest.h>
 
@@ -28,33 +28,36 @@ namespace CoMe {
 namespace Test {
 namespace {
 
-class SymbolTest : public testing::Test {
+class ThreadTest : public testing::Test {
 protected:
-    SymbolTest() {}
-    ~SymbolTest() override {}
+    ThreadTest() {}
+    ~ThreadTest() override {}
     void SetUp() override {}
     void TearDown() override {}
 };
 
-TEST_F(SymbolTest, CreateSymbolObject) {
-    Symbol s { std::string("sym0"), 0U, std::string("mod0") };
-    EXPECT_EQ(s.Name, std::string("sym0"));
-    EXPECT_EQ(s.Address, 0U);
-    EXPECT_EQ(s.Module, std::string("mod0"));
+TEST_F(ThreadTest, CreateThreadObject) {
+    Thread t { 12U, 34U, 56U };
+
+    EXPECT_EQ(t.StartTSC, 12U);
+    EXPECT_EQ(t.FinishTSC, 34U);
+    EXPECT_EQ(t.Context, 56U);
 }
 
-TEST_F(SymbolTest, CopySymbolObject) {
-    Symbol sym1 { std::string("sym0"), 0U, std::string("mod0") };
-    Symbol sym2 = sym1;
-    EXPECT_EQ(sym2.Name, std::string("sym0"));
-    EXPECT_EQ(sym2.Address, 0U);
-    EXPECT_EQ(sym2.Module, std::string("mod0"));
+TEST_F(ThreadTest, CopyThreadObject) {
+    Thread t1 { 12U, 34U, 56U };
+    Thread t2 = t1;
+
+    EXPECT_EQ(t2.StartTSC, 12U);
+    EXPECT_EQ(t2.FinishTSC, 34U);
+    EXPECT_EQ(t2.Context, 56U);
 }
 
-TEST_F(SymbolTest, CompareSymbolObject) {
-    Symbol sym1 { std::string("sym0"), 0U, std::string("mod0") };
-    Symbol sym2 = sym1;
-    EXPECT_EQ(sym1 == sym2, true);
+TEST_F(ThreadTest, CompareThreadObject) {
+    Thread t1 { 12U, 34U, 56U };
+    Thread t2 = t1;
+
+    EXPECT_EQ(t1 == t2, true);
 }
 
 }  // namespace

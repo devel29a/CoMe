@@ -27,6 +27,7 @@
 
 #include "module.hpp"
 #include "symbol.hpp"
+#include "thread.hpp"
 
 namespace CoMe
 {
@@ -35,20 +36,26 @@ class Profiler
 public:
     using ModulesContainer = std::vector<Module>;
     using SymbolsContainer = std::vector<Symbol>;
+    using ThreadsContainer = std::vector<Thread>;
 
     bool start();
     bool stop();
     const ModulesContainer& getLoadedModules();
+    const SymbolsContainer& getRegisteredSymbols();
+    const ThreadsContainer& getStartedThreads();
     bool loadModule(const Module &module);
     bool unloadModule(const Module &module);
     void unloadAllModules(const std::uint64_t unloadTSC);
     const std::string& getModuleNameByAddress(const std::uint64_t address);
     bool registerSymbol(const Symbol &symbol);
     const Symbol& getSymbolByName(const std::string &symbol, const std::string &module);
+    bool startThread(const Thread &thread);
+    bool finishThread(const Thread &thread);
 
 private:
     ModulesContainer LoadedModules;
     SymbolsContainer RegisteredSymbols;
+    ThreadsContainer StartedThreads;
     bool isProfilingActive { false };
 };
 }
