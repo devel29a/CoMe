@@ -29,13 +29,13 @@ namespace CoMe
 struct Sample
 {
     Sample();
-    Sample(const std::uint64_t context, const std::uint64_t sp, const std::uint64_t bp, const std::uint64_t tsc);
+    Sample(const std::uint64_t tsc, const std::uint64_t sp, const std::uint64_t bp);
 
-    bool operator==(const Sample &sample);
+    bool operator==(const Sample &sample) const;
+    bool operator<(const Sample &sample) const;
 
-    std::uint64_t Context { 0U };
+    std::uint64_t TSC { 0U };
     std::uint64_t SP { 0U };
     std::uint64_t BP { 0U };
-    std::uint64_t TSC { 0U };
 };
 } // namespace CoMe

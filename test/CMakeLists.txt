@@ -56,11 +56,11 @@ add_executable(SampleTest utest/sample.cpp ${CMAKE_SOURCE_DIR}/src/profiler/samp
 target_include_directories(SampleTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(SampleTest gtest)
 
-add_executable(LedgerTest utest/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/module.cpp ${CMAKE_SOURCE_DIR}/src/profiler/thread.cpp)
+add_executable(LedgerTest utest/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/module.cpp ${CMAKE_SOURCE_DIR}/src/profiler/thread.cpp ${CMAKE_SOURCE_DIR}/src/profiler/sample.cpp)
 target_include_directories(LedgerTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(LedgerTest gtest)
 
-add_executable(FormatterTest utest/formatter.cpp ${CMAKE_SOURCE_DIR}/src/profiler/formatter.cpp ${CMAKE_SOURCE_DIR}/src/profiler/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/module.cpp ${CMAKE_SOURCE_DIR}/src/profiler/thread.cpp)
+add_executable(FormatterTest utest/formatter.cpp ${CMAKE_SOURCE_DIR}/src/profiler/formatter.cpp ${CMAKE_SOURCE_DIR}/src/profiler/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/module.cpp ${CMAKE_SOURCE_DIR}/src/profiler/thread.cpp ${CMAKE_SOURCE_DIR}/src/profiler/sample.cpp)
 target_include_directories(FormatterTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(FormatterTest gtest)
 

@@ -47,6 +47,15 @@ namespace
         csv += std::to_string(thread.Context  )      ;
         return csv;
     }
+
+    const std::string ToCSV(const CoMe::Sample &sample)
+    {
+        std::string csv;
+        csv += std::to_string(sample.BP ) + ",";
+        csv += std::to_string(sample.SP ) + ",";
+        csv += std::to_string(sample.TSC)      ;
+        return csv;
+    }
 }
 
 namespace CoMe
@@ -67,6 +76,19 @@ const std::string ToCSV(const Ledger::ThreadRecords &records)
     std::stringstream csv;
     for (const auto &record : records)
         csv << ::ToCSV(record) << '\n';
+    return csv.str();
+}
+
+const std::string ToCSV(const Ledger::SampleRecords &records)
+{
+    std::stringstream csv;
+    for (const auto &record : records)
+    {
+        csv << "Thread " << record.first << "\n=====\n";
+        for (const auto &sample : record.second)
+            csv << ::ToCSV(sample) << '\n';
+    }
+
     return csv.str();
 }
 

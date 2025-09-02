@@ -22,10 +22,13 @@
 
 #pragma once
 
+#include <cstdint>
 #include <vector>
+#include <map>
 
 #include "module.hpp"
 #include "thread.hpp"
+#include "sample.hpp"
 
 namespace CoMe
 {
@@ -34,15 +37,19 @@ class Ledger
 public:
     using ModuleRecords = std::vector<Module>;
     using ThreadRecords = std::vector<Thread>;
+    using SampleRecords = std::map<std::uint64_t, std::vector<Sample>>;
 
     bool recordModule(const Module &module);
     bool recordThread(const Thread &thread);
+    bool recordSample(const std::uint64_t thread, const Sample &sample);
 
     const ModuleRecords& getModuleRecords() const;
     const ThreadRecords& getThreadRecords() const;
+    const SampleRecords& getSampleRecords() const;
 
 private:
     ModuleRecords moduleRecords;
     ThreadRecords threadRecords;
+    SampleRecords sampleRecords;
 };
 } // namespace CoMe

@@ -38,6 +38,11 @@ namespace
         return thread.Context && thread.StartTSC &&
                thread.StartTSC < thread.FinishTSC  ;
     }
+
+    bool isSampleRecordValid(const CoMe::Sample &sample)
+    {
+        return sample.BP && sample.SP && sample.TSC;
+    }
 }
 
 namespace CoMe
@@ -60,6 +65,15 @@ namespace CoMe
         return true;
     }
 
+    bool Ledger::recordSample(const std::uint64_t thread, const Sample &sample)
+    {
+        if (!isSampleRecordValid(sample))
+            return false;
+
+        sampleRecords[thread].push_back(sample);
+        return true;
+    }
+
     const Ledger::ModuleRecords& Ledger::getModuleRecords() const
     {
         return moduleRecords;
@@ -68,5 +82,10 @@ namespace CoMe
     const Ledger::ThreadRecords& Ledger::getThreadRecords() const
     {
         return threadRecords;
+    }
+
+    const Ledger::SampleRecords& Ledger::getSampleRecords() const
+    {
+        return sampleRecords;
     }
 }

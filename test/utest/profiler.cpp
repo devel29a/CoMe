@@ -54,12 +54,13 @@ protected:
         return container;
     }
 
-    auto createTestSamples(unsigned amount)
+    auto createTestSampleRecords(unsigned threadsAmount, unsigned samplesAmount)
     {
-        Profiler::SamplesContainer container;
-        for (unsigned i = 0; i < amount; i++)
-            container.emplace_back(Sample(i, i + 1000U, i + 2000U, i));
-        return container;
+        Ledger::SampleRecords records;
+        for (unsigned i = 0; i < threadsAmount; i++)
+            for (unsigned j = 0; j < samplesAmount; j++)
+                records[i + 10].emplace_back(Sample(i + 100U, i * 10U + 10U, i * 10U + 100U));
+        return records;
     }
 
     const std::uint64_t getInnerAddress(const std::uint64_t start, const std::uint64_t end)
@@ -213,17 +214,13 @@ TEST_F(ProfilerTest, GetAllStartedThreads) {
 
 TEST_F(ProfilerTest, ReportSample) {
     Profiler p;
-    auto samples = createTestSamples(4);
-    EXPECT_EQ(p.recordSample(samples[0]), false);
+    auto samples = createTestSampleRecords(1, 4);
+    EXPECT_EQ(p.recordSample(10, samples[10][0]), false);
     EXPECT_EQ(p.start(), true);
-    EXPECT_EQ(p.recordSample(samples[1]), true);
-    EXPECT_EQ(p.recordSample(samples[2]), true);
+    EXPECT_EQ(p.recordSample(10, samples[10][1]), true);
+    EXPECT_EQ(p.recordSample(10, samples[10][2]), true);
     EXPECT_EQ(p.stop(), true);
-    EXPECT_EQ(p.recordSample(samples[3]), false);
-    auto recordedSamples = p.getRecordedSamples();
-    EXPECT_EQ(recordedSamples.size(), 2);
-    EXPECT_EQ(recordedSamples[0] == samples[1], true);
-    EXPECT_EQ(recordedSamples[1] == samples[2], true);
+    EXPECT_EQ(p.recordSample(10, samples[10][3]), false);
 }
 
 TEST_F(ProfilerTest, GetModuleRecordsFormattedInCSV) {
@@ -252,6 +249,18 @@ TEST_F(ProfilerTest, GetThreadRecordsFormattedInCSV) {
     EXPECT_EQ(p.stop(), true);
     auto threadRecordsCSV = p.getThreadRecordsAsCSV();
     EXPECT_EQ(threadRecordsCSV.empty(), false);
+}
+
+TEST_F(ProfilerTest, GetSampleRecordsFormattedInCSV) {
+    Profiler p;
+    auto records = createTestSampleRecords(10, 10);
+    EXPECT_EQ(p.start(), true);
+    for (const auto &record : records)
+        for (const auto &sample : record.second)
+            EXPECT_EQ(p.recordSample(record.first, sample), true);
+    EXPECT_EQ(p.stop(), true);
+    auto sampleRecordsCSV = p.getSampleRecordsAsCSV();
+    EXPECT_EQ(sampleRecordsCSV.empty(), false);
 }
 
 }  // namespace

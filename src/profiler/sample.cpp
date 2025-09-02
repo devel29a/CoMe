@@ -26,19 +26,22 @@ namespace CoMe
 {
     Sample::Sample(){}
 
-    Sample::Sample(const std::uint64_t context, const std::uint64_t sp, const std::uint64_t bp, const std::uint64_t tsc)
+    Sample::Sample(const std::uint64_t tsc, const std::uint64_t sp, const std::uint64_t bp)
     {
-        this->Context = context;
+        this->TSC = tsc;
         this->SP = sp;
         this->BP = bp;
-        this->TSC = tsc;
     }
 
-    bool Sample::operator==(const Sample &sample)
+    bool Sample::operator==(const Sample &sample) const
     {
-        return this->Context == sample.Context &&
+        return this->TSC     == sample.TSC     &&
                this->SP      == sample.SP      &&
-               this->BP      == sample.BP      &&
-               this->TSC     == sample.TSC       ;
+               this->BP      == sample.BP        ;
+    }
+
+    bool Sample::operator<(const Sample &sample) const
+    {
+        return this->TSC < sample.TSC;
     }
 }

@@ -109,11 +109,6 @@ const Profiler::Threads& Profiler::getStartedThreads() const
     return startedThreads;
 }
 
-const Profiler::SamplesContainer& Profiler::getRecordedSamples() const
-{
-    return RecordedSamples;
-}
-
 bool Profiler::loadModule(const std::uint64_t startAddress, const std::uint64_t endAddress, const std::uint64_t loadTSC, const std::string &module)
 {
     if (!isProfilingActive)
@@ -148,7 +143,7 @@ void Profiler::unloadAllModules(const std::uint64_t unloadTSC)
     loadedModules.clear();
 }
 
-const std::string& Profiler::getLoadedModuleNameByAddress(const std::uint64_t address)
+const std::string& Profiler::getLoadedModuleNameByAddress(const std::uint64_t address) const
 {
     static const std::string EmptyPath;
     auto it = findLoadedModuleByAddress(this->getLoadedModules(), address);
@@ -168,7 +163,7 @@ bool Profiler::registerSymbol(const Symbol &symbol)
     return true;
 }
 
-const Symbol& Profiler::getSymbolByName(const std::string &symbol, const std::string &module)
+const Symbol& Profiler::getSymbolByName(const std::string &symbol, const std::string &module) const
 {
     static const Symbol EmptySymbol;
     const auto it = findRegisterSymbolByName(this->getRegisteredSymbols(), symbol, module);
@@ -205,12 +200,12 @@ bool Profiler::finishThread(const std::uint64_t context, std::uint64_t finishTSC
     return true;
 }
 
-bool Profiler::recordSample(const Sample &sample)
+bool Profiler::recordSample(const std::uint64_t context, const Sample &sample)
 {
     if (!isProfilingActive)
         return false;
 
-    RecordedSamples.push_back(sample);
+    ledger.recordSample(context, sample);
     return true;
 }
 
@@ -222,6 +217,11 @@ const std::string Profiler::getModuleRecordsAsCSV() const
 const std::string Profiler::getThreadRecordsAsCSV() const
 {
     return Formatter::ToCSV(ledger.getThreadRecords());
+}
+
+const std::string Profiler::getSampleRecordsAsCSV() const
+{
+    return Formatter::ToCSV(ledger.getSampleRecords());
 }
 
 }

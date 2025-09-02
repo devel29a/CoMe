@@ -39,32 +39,33 @@ public:
     using Modules = std::vector<Module>;
     using SymbolsContainer = std::vector<Symbol>;
     using Threads = std::vector<Thread>;
-    using SamplesContainer = std::vector<Sample>;
 
     bool start();
     bool stop();
+
     const Modules& getLoadedModules() const;
     const SymbolsContainer& getRegisteredSymbols() const;
     const Threads& getStartedThreads() const;
-    const SamplesContainer& getRecordedSamples() const;
+
     bool loadModule(const std::uint64_t startAddress, const std::uint64_t endAddress, const std::uint64_t loadTSC, const std::string &module);
     bool unloadModule(const std::string &module, const std::uint64_t unloadTSC);
     void unloadAllModules(const std::uint64_t unloadTSC);
-    const std::string& getLoadedModuleNameByAddress(const std::uint64_t address);
     bool registerSymbol(const Symbol &symbol);
-    const Symbol& getSymbolByName(const std::string &symbol, const std::string &module);
     bool startThread(const std::uint64_t context, std::uint64_t startTSC);
     bool finishThread(const std::uint64_t context, std::uint64_t finishTSC);
-    bool recordSample(const Sample &sample);
+    bool recordSample(const std::uint64_t context, const Sample &sample);
+
+    const std::string& getLoadedModuleNameByAddress(const std::uint64_t address) const;
+    const Symbol& getSymbolByName(const std::string &symbol, const std::string &module) const;
 
     const std::string getModuleRecordsAsCSV() const;
     const std::string getThreadRecordsAsCSV() const;
+    const std::string getSampleRecordsAsCSV() const;
 
 private:
     Modules loadedModules;
     SymbolsContainer RegisteredSymbols;
     Threads startedThreads;
-    SamplesContainer RecordedSamples;
     bool isProfilingActive { false };
     Ledger ledger;
 };

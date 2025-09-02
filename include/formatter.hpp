@@ -32,5 +32,6 @@ namespace Formatter
 {
     const std::string ToCSV(const Ledger::ModuleRecords &records);
     const std::string ToCSV(const Ledger::ThreadRecords &records);
+    const std::string ToCSV(const Ledger::SampleRecords &records);
 };
 } // namespace CoMe

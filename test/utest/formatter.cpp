@@ -52,6 +52,15 @@ protected:
         return records;
     }
 
+    const auto createTestSampleRecords(unsigned threadsAmount, unsigned samplesAmount)
+    {
+        Ledger::SampleRecords records;
+        for (unsigned i = 0; i < threadsAmount; i++)
+            for (unsigned j = 0; j < samplesAmount; j++)
+                records[i + 10].emplace_back(Sample(j + 100U, j * 10U + 10U, j * 10U + 100U));
+        return records;
+    }
+
     const auto formatCSVTestModuleRecord(const Module &module)
     {
         std::string csv;
@@ -69,6 +78,29 @@ protected:
         csv += std::to_string(thread.StartTSC ) + ",";
         csv += std::to_string(thread.FinishTSC) + ",";
         csv += std::to_string(thread.Context  )      ;
+        return csv;
+    }
+
+    const auto formatCSVTestSampleRecord(const Sample &sample)
+    {
+        std::string csv;
+        csv += std::to_string(sample.BP ) + ",";
+        csv += std::to_string(sample.SP ) + ",";
+        csv += std::to_string(sample.TSC)      ;
+        return csv;
+    }
+
+    const auto formatCSVTestSampleRecords(const Ledger::SampleRecords &records)
+    {
+        std::string csv;
+        for (const auto &record : records)
+        {
+            csv += std::string("Thread ");
+            csv += std::to_string(record.first);
+            csv += std::string("\n=====\n");
+            for (const auto &sample : record.second)
+                csv += formatCSVTestSampleRecord(sample) + std::string("\n");
+        }
         return csv;
     }
 };
@@ -93,6 +125,16 @@ TEST_F(FormatterTest, FormatThreadObjectAsCSV) {
     EXPECT_EQ(text,
               formatCSVTestThreadRecord(threadRecords[0]) + std::string("\n") +
               formatCSVTestThreadRecord(threadRecords[1]) + std::string("\n")  );
+}
+
+TEST_F(FormatterTest, FormatSampleObjectAsCSV) {
+    Ledger l;
+    auto sampleRecords = createTestSampleRecords(2, 10);
+    for (const auto &record : sampleRecords)
+        for (const auto &sample : record.second)
+            l.recordSample(record.first, sample);
+    auto text = Formatter::ToCSV(l.getSampleRecords());
+    EXPECT_EQ(text, formatCSVTestSampleRecords(sampleRecords));
 }
 
 }  // namespace

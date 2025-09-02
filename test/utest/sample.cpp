@@ -37,26 +37,30 @@ protected:
 };
 
 TEST_F(SampleTest, CreateSampleObject) {
-    Sample s { 10U, 20U, 30U, 40U };
-    EXPECT_EQ(s.Context, 10U);
+    Sample s { 10U, 20U, 30U };
+    EXPECT_EQ(s.TSC, 10U);
     EXPECT_EQ(s.SP, 20U);
     EXPECT_EQ(s.BP, 30U);
-    EXPECT_EQ(s.TSC, 40U);
 }
 
 TEST_F(SampleTest, CopySampleObject) {
-    Sample s1 { 10U, 20U, 30U, 40U };
+    Sample s1 { 10U, 20U, 30U };
     Sample s2 = s1;
-    EXPECT_EQ(s2.Context, 10U);
+    EXPECT_EQ(s2.TSC, 10U);
     EXPECT_EQ(s2.SP, 20U);
     EXPECT_EQ(s2.BP, 30U);
-    EXPECT_EQ(s2.TSC, 40U);
 }
 
-TEST_F(SampleTest, CompareSampleObject) {
-    Sample s1 { 10U, 20U, 30U, 40U };
+TEST_F(SampleTest, CompareEqualSampleObject) {
+    Sample s1 { 10U, 20U, 30U };
     Sample s2 = s1;
     EXPECT_EQ(s1 == s2, true);
+}
+
+TEST_F(SampleTest, CompareLessThanSampleObject) {
+    Sample s1 { 10U, 20U, 30U };
+    Sample s2 { 15U, 20U, 30U };
+    EXPECT_EQ(s1 < s2, true);
 }
 
 }  // namespace

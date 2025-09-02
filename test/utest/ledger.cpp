@@ -50,6 +50,15 @@ protected:
             records.emplace_back(Thread(i * 10U + 10U, i * 10U + 100U, i + 1));
         return records;
     }
+
+    auto createTestSampleRecords(unsigned threadsAmount, unsigned samplesAmount)
+    {
+        Ledger::SampleRecords records;
+        for (unsigned i = 0; i < threadsAmount; i++)
+            for (unsigned j = 0; j < samplesAmount; j++)
+                records[i + 10].emplace_back(Sample(i + 100U, i * 10U + 10U, i * 10U + 100U));
+        return records;
+    }
 };
 
 TEST_F(LedgerTest, RecordTenModules) {
@@ -128,6 +137,19 @@ TEST_F(LedgerTest, GetThreadRecords) {
     EXPECT_EQ(threadRecords.size(), 10);
     for (std::size_t i = 0; i < threadRecords.size(); i++)
         EXPECT_EQ(threadRecords[i] == records[i], true);
+}
+
+TEST_F(LedgerTest, RecordTenSamplesFromSingleThread) {
+    Ledger l;
+    const auto records = createTestSampleRecords(1, 10);
+    for (const auto &r : records.begin()->second)
+        EXPECT_EQ(l.recordSample(records.begin()->first, r), true);
+    auto samples = l.getSampleRecords();
+    EXPECT_EQ(samples.size(), 1);
+    const auto &samplesOneThread = samples[10];
+    EXPECT_EQ(samplesOneThread.size(), 10);
+    for (std::size_t i = 0; i < 10; i++)
+        EXPECT_EQ(samplesOneThread.at(i), records.cbegin()->second.at(i));
 }
 
 }  // namespace

@@ -57,6 +57,7 @@ void on_exit()
 
     dr_printf("Module Records in CSV\n=====\n%s\n", profiler.getModuleRecordsAsCSV().c_str());
     dr_printf("Thread Records in CSV\n=====\n%s\n", profiler.getThreadRecordsAsCSV().c_str());
+    dr_printf("Sample Records in CSV\n=====\n%s\n", profiler.getSampleRecordsAsCSV().c_str());
 }
 
 void find_prof_timer_func(const module_data_t *module)
@@ -157,7 +158,6 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
         return action;
 
     CoMe::Sample s {
-        reinterpret_cast<std::uint64_t>(ctx),
         reinterpret_cast<std::uint64_t>(siginfo->mcontext->xsp),
         reinterpret_cast<std::uint64_t>(siginfo->mcontext->xbp),
         __rdtsc()
@@ -166,7 +166,7 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
     if (siginfo->sig == SIGPROF)
         action = DR_SIGNAL_SUPPRESS;
 
-    profiler.recordSample(s);
+    profiler.recordSample(reinterpret_cast<std::uint64_t>(ctx), s);
 
     //dr_printf("%s: Context %p, DRContext %p, SP %p, BP %p, Sig %d\n", __func__, ctx,
     //    siginfo->drcontext, siginfo->mcontext->xsp, siginfo->mcontext->xbp, siginfo->sig);
