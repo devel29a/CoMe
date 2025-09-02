@@ -40,6 +40,11 @@
 namespace
 {
     CoMe::Profiler profiler;
+#ifdef LINUX
+    using Func = int(*)(int, const itimerval*, itimerval*);
+    Func enable_prof_timer = nullptr;
+#endif
+    const std::uint64_t DEFAULT_SAMPLING_RATE_IN_MICROSECONDS { 100U };
 }
 
 void on_exit()
@@ -47,9 +52,14 @@ void on_exit()
     profiler.unloadAllModules(__rdtsc());
     profiler.stop();
     drsym_exit();
+
+    dr_printf("%s\n", __func__);
+
+    dr_printf("Module Records in CSV\n=====\n%s\n", profiler.getModuleRecordsAsCSV().c_str());
+    dr_printf("Thread Records in CSV\n=====\n%s\n", profiler.getThreadRecordsAsCSV().c_str());
 }
 
-void activate_profiling_signal(module_data_t *module)
+void find_prof_timer_func(const module_data_t *module)
 {
 #ifdef LINUX
     if (!module)
@@ -60,17 +70,24 @@ void activate_profiling_signal(module_data_t *module)
     if (!func)
         return;
 
-    using Func = int(*)(int, const itimerval*, itimerval*);
-    auto f = reinterpret_cast<Func>(func);
+    enable_prof_timer = reinterpret_cast<Func>(func);
+
+    //dr_printf("%s: Found 'setitimer' in %s at %p\n", __func__, module->full_path, func);
+#endif
+}
+
+void call_prof_timer_func(const std::uint64_t interval)
+{
+#ifdef LINUX
+    if (!enable_prof_timer)
+        return;
 
     itimerval rate;
     rate.it_value.tv_sec = 0;
-    rate.it_value.tv_usec = 100;
+    rate.it_value.tv_usec = interval;
     rate.it_interval.tv_sec = 0;
-    rate.it_interval.tv_usec = 100;
-
-    f(ITIMER_PROF, &rate, NULL);
-    //dr_printf("%s: Found [%p] '%s' in %s\n", __func__, func, "setitimer", module->full_path);
+    rate.it_interval.tv_usec = interval;
+    enable_prof_timer(ITIMER_PROF, &rate, NULL);
 #endif
 }
 
@@ -79,14 +96,17 @@ bool on_symbol(const char *name, size_t modoffs, void *data)
     auto module = static_cast<module_data_t *>(data);
     CoMe::Symbol symbol { std::string(name), modoffs, std::string(module->full_path) };
     profiler.registerSymbol(symbol);
-
-    if (0 != symbol.Name.find("setitimer"))
-        return true;
-
-    activate_profiling_signal(module);
-
-    // dr_printf("%s: [0x%llx] %s from %s\n", __func__, symbol.Address, symbol.Name.c_str(), symbol.Module.c_str());
     return true;
+}
+
+void instrument_symbols_in_module(const module_data_t *data)
+{
+    if (!data)
+        return;
+
+    auto data_copy = dr_copy_module_data(data);
+    drsym_enumerate_symbols(data->full_path, on_symbol, data_copy, DRSYM_DEFAULT_FLAGS);
+    dr_free_module_data(data_copy);
 }
 
 void on_module_load(void *ctx, const module_data_t *data, bool loaded)
@@ -94,19 +114,10 @@ void on_module_load(void *ctx, const module_data_t *data, bool loaded)
     if (!data || !data->full_path)
         return;
 
-    CoMe::Module module {
-        reinterpret_cast<std::uint64_t>(data->start),
-        reinterpret_cast<std::uint64_t>(data->end),
-        __rdtsc(),
-        0UL,
-        std::string(data->full_path)
-    };
-
-    auto err = profiler.loadModule(module);
-
-    auto data_copy = dr_copy_module_data(data);
-    drsym_enumerate_symbols(module.FullPath.c_str(), on_symbol, data_copy, DRSYM_DEFAULT_FLAGS);
-    dr_free_module_data(data_copy);
+    auto err = profiler.loadModule(reinterpret_cast<std::uint64_t>(data->start), reinterpret_cast<std::uint64_t>(data->end), __rdtsc(), std::string(data->full_path));
+    instrument_symbols_in_module(data);
+    find_prof_timer_func(data);
+    call_prof_timer_func(DEFAULT_SAMPLING_RATE_IN_MICROSECONDS);
 
     //dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu, Added: %u, Total Amount %u\n",
     //    __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED", module.LoadTSC, err, profiler.getLoadedModules().size());
@@ -166,22 +177,17 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
 
 void on_thread_init(void *ctx)
 {
-    CoMe::Thread thread {
-        __rdtsc(),
-        0UL,
-        reinterpret_cast<std::uint64_t>(ctx)
-    };
+    //dr_printf("%s: Thread %p started at %llu, timer_func_ptr %p \n", __func__, ctx, __rdtsc(), enable_prof_timer);
 
-    profiler.startThread(thread);
-
-    //dr_printf("%s: Thread %p started at %llu\n", __func__, ctx, thread.StartTSC);
+    profiler.startThread(reinterpret_cast<const std::uint64_t>(ctx), __rdtsc());
+    call_prof_timer_func(DEFAULT_SAMPLING_RATE_IN_MICROSECONDS);
 }
 
 void on_thread_exit(void *ctx)
 {
-    profiler.finishThread(reinterpret_cast<const std::uint64_t>(ctx), __rdtsc());
-
     //dr_printf("%s: Thread %p finished at %llu\n", __func__, ctx, __rdtsc());
+
+    profiler.finishThread(reinterpret_cast<const std::uint64_t>(ctx), __rdtsc());
 }
 
 dr_emit_flags_t on_basicblock(void *ctx, void *tag, instrlist_t *bb, bool for_trace, bool translating)

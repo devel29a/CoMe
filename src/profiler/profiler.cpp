@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "profiler.hpp"
+#include "formatter.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -113,12 +114,12 @@ const Profiler::SamplesContainer& Profiler::getRecordedSamples() const
     return RecordedSamples;
 }
 
-bool Profiler::loadModule(const Module &module)
+bool Profiler::loadModule(const std::uint64_t startAddress, const std::uint64_t endAddress, const std::uint64_t loadTSC, const std::string &module)
 {
     if (!isProfilingActive)
         return false;
 
-    loadedModules.emplace_back(Module(module.StartAddress, module.EndAddress, module.LoadTSC, 0U, module.FullPath));
+    loadedModules.emplace_back(Module(startAddress, endAddress, loadTSC, 0U, module));
     return true;
 }
 
@@ -141,13 +142,13 @@ bool Profiler::unloadModule(const std::string &module, const std::uint64_t unloa
 
 void Profiler::unloadAllModules(const std::uint64_t unloadTSC)
 {
-    for (const auto module : loadedModules)
-        ledger.recordModule(module);
+    for (const auto &module : loadedModules)
+        unloadModule(module.FullPath, unloadTSC);
 
     loadedModules.clear();
 }
 
-const std::string& Profiler::getModuleNameByAddress(const std::uint64_t address)
+const std::string& Profiler::getLoadedModuleNameByAddress(const std::uint64_t address)
 {
     static const std::string EmptyPath;
     auto it = findLoadedModuleByAddress(this->getLoadedModules(), address);
@@ -178,12 +179,12 @@ const Symbol& Profiler::getSymbolByName(const std::string &symbol, const std::st
     return *it;
 }
 
-bool Profiler::startThread(const Thread &thread)
+bool Profiler::startThread(const std::uint64_t context, std::uint64_t startTSC)
 {
     if (!isProfilingActive)
         return false;
 
-    startedThreads.push_back(thread);
+    startedThreads.emplace_back(Thread(startTSC, 0U, context));
     return true;
 }
 
@@ -211,6 +212,16 @@ bool Profiler::recordSample(const Sample &sample)
 
     RecordedSamples.push_back(sample);
     return true;
+}
+
+const std::string Profiler::getModuleRecordsAsCSV() const
+{
+    return Formatter::ToCSV(ledger.getModuleRecords());
+}
+
+const std::string Profiler::getThreadRecordsAsCSV() const
+{
+    return Formatter::ToCSV(ledger.getThreadRecords());
 }
 
 }

@@ -44,6 +44,14 @@ protected:
         return records;
     }
 
+    const auto createTestThreadRecords(unsigned amount)
+    {
+        Ledger::ThreadRecords records;
+        for (unsigned i = 0; i < amount; i++)
+            records.emplace_back(Thread(i * 10U + 10U, i * 10U + 100U, i + 1));
+        return records;
+    }
+
     const auto formatCSVTestModuleRecord(const Module &module)
     {
         std::string csv;
@@ -52,6 +60,15 @@ protected:
         csv += std::to_string(module.LoadTSC     ) + ",";
         csv += std::to_string(module.UnloadTSC   ) + ",";
         csv +=                module.FullPath           ;
+        return csv;
+    }
+
+    const auto formatCSVTestThreadRecord(const Thread &thread)
+    {
+        std::string csv;
+        csv += std::to_string(thread.StartTSC ) + ",";
+        csv += std::to_string(thread.FinishTSC) + ",";
+        csv += std::to_string(thread.Context  )      ;
         return csv;
     }
 };
@@ -65,6 +82,17 @@ TEST_F(FormatterTest, FormatModuleObjectAsCSV) {
     EXPECT_EQ(text,
               formatCSVTestModuleRecord(moduleRecords[0]) + std::string("\n") +
               formatCSVTestModuleRecord(moduleRecords[1]) + std::string("\n")  );
+}
+
+TEST_F(FormatterTest, FormatThreadObjectAsCSV) {
+    Ledger l;
+    auto threadRecords = createTestThreadRecords(2);
+    for (const auto &record : threadRecords)
+        l.recordThread(record);
+    auto text = Formatter::ToCSV(l.getThreadRecords());
+    EXPECT_EQ(text,
+              formatCSVTestThreadRecord(threadRecords[0]) + std::string("\n") +
+              formatCSVTestThreadRecord(threadRecords[1]) + std::string("\n")  );
 }
 
 }  // namespace

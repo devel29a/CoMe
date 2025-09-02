@@ -47,15 +47,18 @@ public:
     const SymbolsContainer& getRegisteredSymbols() const;
     const Threads& getStartedThreads() const;
     const SamplesContainer& getRecordedSamples() const;
-    bool loadModule(const Module &module);
+    bool loadModule(const std::uint64_t startAddress, const std::uint64_t endAddress, const std::uint64_t loadTSC, const std::string &module);
     bool unloadModule(const std::string &module, const std::uint64_t unloadTSC);
     void unloadAllModules(const std::uint64_t unloadTSC);
-    const std::string& getModuleNameByAddress(const std::uint64_t address);
+    const std::string& getLoadedModuleNameByAddress(const std::uint64_t address);
     bool registerSymbol(const Symbol &symbol);
     const Symbol& getSymbolByName(const std::string &symbol, const std::string &module);
-    bool startThread(const Thread &thread);
+    bool startThread(const std::uint64_t context, std::uint64_t startTSC);
     bool finishThread(const std::uint64_t context, std::uint64_t finishTSC);
     bool recordSample(const Sample &sample);
+
+    const std::string getModuleRecordsAsCSV() const;
+    const std::string getThreadRecordsAsCSV() const;
 
 private:
     Modules loadedModules;

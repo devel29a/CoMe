@@ -60,7 +60,7 @@ add_executable(LedgerTest utest/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/ledg
 target_include_directories(LedgerTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(LedgerTest gtest)
 
-add_executable(FormatterTest utest/formatter.cpp ${CMAKE_SOURCE_DIR}/src/profiler/formatter.cpp ${CMAKE_SOURCE_DIR}/src/profiler/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/module.cpp)
+add_executable(FormatterTest utest/formatter.cpp ${CMAKE_SOURCE_DIR}/src/profiler/formatter.cpp ${CMAKE_SOURCE_DIR}/src/profiler/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/module.cpp ${CMAKE_SOURCE_DIR}/src/profiler/thread.cpp)
 target_include_directories(FormatterTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(FormatterTest gtest)
 

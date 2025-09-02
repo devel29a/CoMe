@@ -38,19 +38,37 @@ namespace
         csv +=                module.FullPath           ;
         return csv;
     }
+
+    const std::string ToCSV(const CoMe::Thread &thread)
+    {
+        std::string csv;
+        csv += std::to_string(thread.StartTSC ) + ",";
+        csv += std::to_string(thread.FinishTSC) + ",";
+        csv += std::to_string(thread.Context  )      ;
+        return csv;
+    }
 }
 
 namespace CoMe
 {
 namespace Formatter
 {
+
 const std::string ToCSV(const Ledger::ModuleRecords &records)
 {
     std::stringstream csv;
     for (const auto &record : records)
         csv << ::ToCSV(record) << '\n';
-    csv.str().pop_back();
     return csv.str();
 }
+
+const std::string ToCSV(const Ledger::ThreadRecords &records)
+{
+    std::stringstream csv;
+    for (const auto &record : records)
+        csv << ::ToCSV(record) << '\n';
+    return csv.str();
+}
+
 }
 }
