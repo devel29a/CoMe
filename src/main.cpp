@@ -44,11 +44,8 @@ namespace
 
 void on_exit()
 {
-    dr_printf("%s: called\n", __func__);
-
     profiler.unloadAllModules(__rdtsc());
     profiler.stop();
-
     drsym_exit();
 }
 
@@ -56,27 +53,24 @@ void activate_profiling_signal(module_data_t *module)
 {
 #ifdef LINUX
     if (!module)
-    {
-        dr_printf("%s: Unable to find module\n", __func__);
         return;
-    }
 
     auto func = dr_get_proc_address(module->handle, "setitimer");
 
-    if (func)
-    {
-        using Func = int(*)(int, const itimerval*, itimerval*);
-        auto f = reinterpret_cast<Func>(func);
-        dr_printf("%s: Found [%p] '%s' in %s\n", __func__, func, "setitimer", module->full_path);
+    if (!func)
+        return;
 
-        itimerval rate;
-        rate.it_value.tv_sec = 0;
-        rate.it_value.tv_usec = 100;
-        rate.it_interval.tv_sec = 0;
-        rate.it_interval.tv_usec = 100;
+    using Func = int(*)(int, const itimerval*, itimerval*);
+    auto f = reinterpret_cast<Func>(func);
 
-        f(ITIMER_PROF, &rate, NULL);
-    }
+    itimerval rate;
+    rate.it_value.tv_sec = 0;
+    rate.it_value.tv_usec = 100;
+    rate.it_interval.tv_sec = 0;
+    rate.it_interval.tv_usec = 100;
+
+    f(ITIMER_PROF, &rate, NULL);
+    //dr_printf("%s: Found [%p] '%s' in %s\n", __func__, func, "setitimer", module->full_path);
 #endif
 }
 
@@ -86,59 +80,49 @@ bool on_symbol(const char *name, size_t modoffs, void *data)
     CoMe::Symbol symbol { std::string(name), modoffs, std::string(module->full_path) };
     profiler.registerSymbol(symbol);
 
-    if (symbol.Name.find("setitimer") == 0)
-    {
-        dr_printf("%s: [0x%llx] %s from %s\n", __func__, symbol.Address, symbol.Name.c_str(), symbol.Module.c_str());
+    if (0 != symbol.Name.find("setitimer"))
+        return true;
 
-        activate_profiling_signal(module);
-    }
+    activate_profiling_signal(module);
 
-
+    // dr_printf("%s: [0x%llx] %s from %s\n", __func__, symbol.Address, symbol.Name.c_str(), symbol.Module.c_str());
     return true;
 }
 
 void on_module_load(void *ctx, const module_data_t *data, bool loaded)
 {
-    if (!data)
-    {
-        dr_printf("%s: data is NULL\n", __func__);
+    if (!data || !data->full_path)
         return;
-    }
-
-    std::uint64_t LoadTSC = __rdtsc();
 
     CoMe::Module module {
         reinterpret_cast<std::uint64_t>(data->start),
         reinterpret_cast<std::uint64_t>(data->end),
-        LoadTSC,
+        __rdtsc(),
         0UL,
         std::string(data->full_path)
     };
 
     auto err = profiler.loadModule(module);
 
-    dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu, Added: %u, Total Amount %u\n",
-        __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED", LoadTSC, err, profiler.getLoadedModules().size());
-
     auto data_copy = dr_copy_module_data(data);
     drsym_enumerate_symbols(module.FullPath.c_str(), on_symbol, data_copy, DRSYM_DEFAULT_FLAGS);
     dr_free_module_data(data_copy);
+
+    //dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu, Added: %u, Total Amount %u\n",
+    //    __func__, ctx, data->start, data->full_path, loaded ? "LOADED":"UNLOADED", module.LoadTSC, err, profiler.getLoadedModules().size());
 }
 
 void on_module_unload(void *ctx, const module_data_t *data)
 {
     if (!data)
-    {
-        dr_printf("%s: data is NULL\n", __func__);
         return;
-    }
 
-    std::uint64_t UnloadTSC = __rdtsc();
+    const std::uint64_t UnloadTSC = __rdtsc();
+    auto err = profiler.unloadModule(std::string(data->full_path), UnloadTSC);
 
-    auto err = profiler.unloadModule(std::string(data->full_path));
+    //dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu, Removed: %u, Total Amount %u\n",
+    //    __func__, ctx, data->start, data->full_path, "UNLOADED", UnloadTSC, err, profiler.getLoadedModules().size());
 
-    dr_printf("%s: Context %p, Addr %p, Path %s, State %s at %llu, Removed: %u, Total Amount %u\n",
-        __func__, ctx, data->start, data->full_path, "UNLOADED", UnloadTSC, err, profiler.getLoadedModules().size());
 }
 
 #ifdef WINDOWS
@@ -159,13 +143,8 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
     dr_signal_action_t action = DR_SIGNAL_DELIVER;
 
     if (!siginfo)
-        dr_printf("%s: siginfo is NULL\n", __func__);
+        return action;
 
-    /*
-    dr_printf("%s: Context %p, DRContext %p, SP %p, BP %p, Sig %d\n", __func__, ctx,
-        siginfo->drcontext, siginfo->mcontext->xsp, siginfo->mcontext->xbp, siginfo->sig);
-    */
-    
     CoMe::Sample s {
         reinterpret_cast<std::uint64_t>(ctx),
         reinterpret_cast<std::uint64_t>(siginfo->mcontext->xsp),
@@ -173,10 +152,13 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
         __rdtsc()
     };
 
-    profiler.recordSample(s);
-
     if (siginfo->sig == SIGPROF)
         action = DR_SIGNAL_SUPPRESS;
+
+    profiler.recordSample(s);
+
+    //dr_printf("%s: Context %p, DRContext %p, SP %p, BP %p, Sig %d\n", __func__, ctx,
+    //    siginfo->drcontext, siginfo->mcontext->xsp, siginfo->mcontext->xbp, siginfo->sig);
 
     return action;
 }
@@ -184,32 +166,22 @@ dr_signal_action_t on_signal(void *ctx, dr_siginfo_t *siginfo)
 
 void on_thread_init(void *ctx)
 {
-    std::uint64_t StartTSC = __rdtsc();
-
     CoMe::Thread thread {
-        StartTSC,
+        __rdtsc(),
         0UL,
         reinterpret_cast<std::uint64_t>(ctx)
     };
 
     profiler.startThread(thread);
 
-    dr_printf("%s: Thread %p started at %llu\n", __func__, ctx, StartTSC);
+    //dr_printf("%s: Thread %p started at %llu\n", __func__, ctx, thread.StartTSC);
 }
 
 void on_thread_exit(void *ctx)
 {
-    std::uint64_t FinishTSC = __rdtsc();
+    profiler.finishThread(reinterpret_cast<const std::uint64_t>(ctx), __rdtsc());
 
-    CoMe::Thread thread {
-        0UL,
-        FinishTSC,
-        reinterpret_cast<std::uint64_t>(ctx)
-    };
-
-    profiler.finishThread(thread);
-
-    dr_printf("%s: Thread %p finished at %llu\n", __func__, ctx, FinishTSC);
+    //dr_printf("%s: Thread %p finished at %llu\n", __func__, ctx, __rdtsc());
 }
 
 dr_emit_flags_t on_basicblock(void *ctx, void *tag, instrlist_t *bb, bool for_trace, bool translating)
@@ -275,8 +247,8 @@ void register_profiling_callbacks()
 {
     register_module_profiling_callbacks();
     register_thread_profiling_callbacks();
-    dr_register_bb_event(on_basicblock);
-    dr_register_trace_event(on_trace);
+    //dr_register_bb_event(on_basicblock);
+    //dr_register_trace_event(on_trace);
     register_runtime_error_callbacks();
     dr_register_exit_event(on_exit);
 }

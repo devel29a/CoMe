@@ -35,11 +35,7 @@ struct Thread
     std::uint64_t FinishTSC { 0U };
     std::uint64_t Context { 0U };
 
-    bool operator==(const Thread &thread)
-    {
-        return this->StartTSC  == thread.StartTSC  &&
-               this->FinishTSC == thread.FinishTSC &&
-               this->Context   == thread.Context     ; 
-    }
+    const Thread& operator=(const Thread &module);
+    bool operator==(const Thread &thread) const;
 };
 } // namespace CoMe

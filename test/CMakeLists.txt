@@ -56,6 +56,10 @@ add_executable(SampleTest utest/sample.cpp ${CMAKE_SOURCE_DIR}/src/profiler/samp
 target_include_directories(SampleTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(SampleTest gtest)
 
+add_executable(LedgerTest utest/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/ledger.cpp ${CMAKE_SOURCE_DIR}/src/profiler/module.cpp ${CMAKE_SOURCE_DIR}/src/profiler/thread.cpp)
+target_include_directories(LedgerTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
+target_link_libraries(LedgerTest gtest)
+
 file(GLOB PROFILER_SOURCES "${CMAKE_SOURCE_DIR}/src/profiler/*.cpp")
 add_executable(ProfilerTest utest/profiler.cpp ${PROFILER_SOURCES})
 target_include_directories(ProfilerTest PRIVATE "${CMAKE_SOURCE_DIR}/include")
@@ -89,6 +93,9 @@ add_test(NAME ThreadTest
 
 add_test(NAME SampleTest
          COMMAND SampleTest)
+
+add_test(NAME LedgerTest
+         COMMAND LedgerTest)
 
 add_test(NAME ProfilerTest
          COMMAND ProfilerTest)

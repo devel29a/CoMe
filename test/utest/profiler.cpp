@@ -40,7 +40,7 @@ protected:
 
     auto createTestModules(unsigned amount)
     {
-        Profiler::ModulesContainer container;
+        Profiler::Modules container;
         for (unsigned i = 0; i < amount; i++)
             container.emplace_back(Module(i + 1000U, i + 1000U + 100U, 10U, 0U, std::string("mod") + std::to_string(i)));
         return container;
@@ -48,7 +48,7 @@ protected:
 
     auto createTestThreads(unsigned amount)
     {
-        Profiler::ThreadsContainer container;
+        Profiler::Threads container;
         for (unsigned i = 0; i < amount; i++)
             container.emplace_back(Thread(i + 1000, 0U, i));
         return container;
@@ -101,7 +101,7 @@ TEST_F(ProfilerTest, UnloadModule) {
     const auto modulesContainer = createTestModules(4);
     EXPECT_EQ(p.start(), true);
     EXPECT_EQ(p.loadModule(modulesContainer[0]), true);
-    EXPECT_EQ(p.unloadModule(modulesContainer[0].FullPath), true);
+    EXPECT_EQ(p.unloadModule(modulesContainer[0].FullPath, 100U), true);
     EXPECT_EQ(p.stop(), true);
     EXPECT_EQ(p.getLoadedModules().size(), 0);
 }
@@ -112,7 +112,7 @@ TEST_F(ProfilerTest, UnloadModuleAllModules) {
     EXPECT_EQ(p.start(), true);
     EXPECT_EQ(p.loadModule(modulesContainer[0]), true);
     EXPECT_EQ(p.loadModule(modulesContainer[1]), true);
-    p.unloadAllModules(42U);
+    p.unloadAllModules(100U);
     EXPECT_EQ(p.stop(), true);
     auto modules = p.getLoadedModules();
     EXPECT_EQ(modules.size(), 0);
@@ -174,7 +174,7 @@ TEST_F(ProfilerTest, StartFinishThread) {
     auto threads = createTestThreads(1);
     EXPECT_EQ(p.start(), true);
     EXPECT_EQ(p.startThread(threads[0]), true);
-    EXPECT_EQ(p.finishThread(threads[0]), true);
+    EXPECT_EQ(p.finishThread(threads[0].Context, 100U), true);
     EXPECT_EQ(p.stop(), true);
 }
 

@@ -28,7 +28,7 @@
 namespace
 {
 
-auto findLoadedModuleByAddress(const CoMe::Profiler::ModulesContainer &modules, const std::uint64_t address)
+auto findLoadedModuleByAddress(const CoMe::Profiler::Modules &modules, const std::uint64_t address)
 {
     return std::find_if(modules.cbegin(), modules.cend(),
         [&](const auto &m)
@@ -37,18 +37,32 @@ auto findLoadedModuleByAddress(const CoMe::Profiler::ModulesContainer &modules, 
         });
 }
 
-auto findLoadedModuleByName(const CoMe::Profiler::ModulesContainer &modules, const std::string &module)
+auto findLoadedModuleByName(const CoMe::Profiler::Modules &modules, const std::string &module)
 {
-    return std::find_if(modules.cbegin(), modules.cend(),
+    return std::find_if(modules.begin(), modules.end(),
         [&](const auto &m)
         {
             return m.FullPath == module;
         });
 }
 
-bool isModuleLoaded(const CoMe::Profiler::ModulesContainer &modules, CoMe::Profiler::ModulesContainer::const_iterator iter)
+auto findStartedThread(const CoMe::Profiler::Threads &threads, const std::uint64_t context)
+{
+    return std::find_if(threads.begin(), threads.end(),
+        [&](const auto &t)
+        {
+            return t.Context == context;
+        });
+}
+
+bool isModuleLoaded(const CoMe::Profiler::Modules &modules, CoMe::Profiler::Modules::const_iterator iter)
 {
     return iter != modules.cend();
+}
+
+bool isThreadStarted(const CoMe::Profiler::Threads &threads, CoMe::Profiler::Threads::const_iterator iter)
+{
+    return iter != threads.cend();
 }
 
 auto findRegisterSymbolByName(const CoMe::Profiler::SymbolsContainer &symbols, const std::string &name, const std::string &module)
@@ -79,22 +93,22 @@ bool Profiler::stop()
     return true;
 }
 
-const Profiler::ModulesContainer& Profiler::getLoadedModules()
+const Profiler::Modules& Profiler::getLoadedModules() const
 {
-    return LoadedModules;
+    return loadedModules;
 }
 
-const Profiler::SymbolsContainer& Profiler::getRegisteredSymbols()
+const Profiler::SymbolsContainer& Profiler::getRegisteredSymbols() const
 {
     return RegisteredSymbols;
 }
 
-const Profiler::ThreadsContainer& Profiler::getStartedThreads()
+const Profiler::Threads& Profiler::getStartedThreads() const
 {
-    return StartedThreads;
+    return startedThreads;
 }
 
-const Profiler::SamplesContainer& Profiler::getRecordedSamples()
+const Profiler::SamplesContainer& Profiler::getRecordedSamples() const
 {
     return RecordedSamples;
 }
@@ -104,11 +118,11 @@ bool Profiler::loadModule(const Module &module)
     if (!isProfilingActive)
         return false;
 
-    LoadedModules.emplace_back(Module(module.StartAddress, module.EndAddress, module.LoadTSC, 0U, module.FullPath));
+    loadedModules.emplace_back(Module(module.StartAddress, module.EndAddress, module.LoadTSC, 0U, module.FullPath));
     return true;
 }
 
-bool Profiler::unloadModule(const std::string &module)
+bool Profiler::unloadModule(const std::string &module, const std::uint64_t unloadTSC)
 {
     if (!isProfilingActive)
         return false;
@@ -118,13 +132,19 @@ bool Profiler::unloadModule(const std::string &module)
     if (!isModuleLoaded(this->getLoadedModules(), it))
         return false;
 
-    LoadedModules.erase(it);
+    const_cast<Module&>(*it).UnloadTSC = unloadTSC;
+    ledger.recordModule(*it);
+
+    loadedModules.erase(it);
     return true;
 }
 
 void Profiler::unloadAllModules(const std::uint64_t unloadTSC)
 {
-    LoadedModules.clear();
+    for (const auto module : loadedModules)
+        ledger.recordModule(module);
+
+    loadedModules.clear();
 }
 
 const std::string& Profiler::getModuleNameByAddress(const std::uint64_t address)
@@ -163,21 +183,24 @@ bool Profiler::startThread(const Thread &thread)
     if (!isProfilingActive)
         return false;
 
-    StartedThreads.push_back(thread);
+    startedThreads.push_back(thread);
     return true;
 }
 
-bool Profiler::finishThread(const Thread &thread)
+bool Profiler::finishThread(const std::uint64_t context, std::uint64_t finishTSC)
 {
     if (!isProfilingActive)
         return false;
 
-    auto it = std::remove(StartedThreads.begin(), StartedThreads.end(), thread);
+    auto it = findStartedThread(this->getStartedThreads(), context);
 
-    if (StartedThreads.cend() == it)
+    if (!isThreadStarted(this->getStartedThreads(), it))
         return false;
 
-    StartedThreads.erase(it);
+    const_cast<Thread&>(*it).FinishTSC = finishTSC;
+    ledger.recordThread(*it);
+
+    startedThreads.erase(it);
     return true;
 }
 

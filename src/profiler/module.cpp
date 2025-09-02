@@ -50,7 +50,7 @@ const Module& Module::operator=(const Module& module)
     return *this;
 }
 
-bool Module::operator==(const CoMe::Module& module)
+bool Module::operator==(const CoMe::Module& module) const
 {
     return this->StartAddress == module.StartAddress &&
            this->EndAddress   == module.EndAddress   &&

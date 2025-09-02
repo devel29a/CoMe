@@ -22,31 +22,27 @@
 
 #pragma once
 
-#include <cstdint>
-#include <string>
 #include <vector>
+
+#include "module.hpp"
+#include "thread.hpp"
 
 namespace CoMe
 {
-struct Module
+class Ledger
 {
-    std::uint64_t StartAddress { 0U };
-    std::uint64_t EndAddress { 0U };
-    std::uint64_t LoadTSC { 0U };
-    std::uint64_t UnloadTSC { 0U };
-    std::string FullPath;
+public:
+    using ModuleRecords = std::vector<Module>;
+    using ThreadRecords = std::vector<Thread>;
 
-    Module();
+    bool recordModule(const Module &module);
+    bool recordThread(const Thread &thread);
 
-    Module(const std::uint64_t StartAddress_,
-           const std::uint64_t EndAddress_,
-           const std::uint64_t LoadTSC_,
-           const std::uint64_t UnloadTSC_,
-           const std::string &FullPath_);
+    const ModuleRecords& getModuleRecords() const;
+    const ThreadRecords& getThreadRecords() const;
 
-    const Module& operator=(const Module &module);
-    bool operator==(const CoMe::Module &module) const;
+private:
+    ModuleRecords moduleRecords;
+    ThreadRecords threadRecords;
 };
-
-using Modules = std::vector<Module>;
-}
+} // namespace CoMe

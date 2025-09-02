@@ -28,8 +28,24 @@ Thread::Thread(){}
 
 Thread::Thread(const std::uint64_t startTSC, std::uint64_t finishTSC, std::uint64_t context)
 {
-    this->StartTSC = startTSC;
+    this->StartTSC  = startTSC;
     this->FinishTSC = finishTSC;
-    this->Context = context;
+    this->Context   = context;
+}
+
+const Thread& Thread::operator=(const Thread &module)
+{
+    this->StartTSC  = module.StartTSC;
+    this->FinishTSC = module.FinishTSC;
+    this->Context   = module.Context;
+
+    return *this;
+}
+
+bool Thread::operator==(const Thread &thread) const
+{
+    return this->StartTSC  == thread.StartTSC  &&
+           this->FinishTSC == thread.FinishTSC &&
+           this->Context   == thread.Context     ;
 }
 }

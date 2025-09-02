@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 cmake_minimum_required(VERSION 3.20)
+cmake_policy(SET CMP0135 NEW) # See https://cmake.org/cmake/help/latest/policy/CMP0135.html
 
 project(CoMe)
 
